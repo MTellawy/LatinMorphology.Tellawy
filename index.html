@@ -21,12 +21,12 @@
                         'notokufi': ['"Noto Kufi Arabic"', 'sans-serif'],
                     },
                     animation: {
-                        'fade-in-slide': 'fadeInSlide 0.4s ease-out forwards',
+                        'fade-in-slide': 'fadeInSlide 0.2s ease-out forwards',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeInSlide: {
-                            '0%': { opacity: '0', transform: 'translateY(15px)' },
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
                         }
                     }
@@ -35,32 +35,51 @@
         }
     </script>
 
+    <!-- إعدادات الطباعة للـ PDF - Landscape & No Margins -->
+    <style>
+        @media print {
+            @page {
+                size: landscape; /* إجبار المتصفح على الطباعة بالعرض */
+                margin: 0mm;     /* إزالة الهوامش الافتراضية */
+            }
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                background-color: transparent !important;
+                margin: 0;
+                padding: 0;
+            }
+            .print-page {
+                width: 100vw;
+                height: 100vh;
+                page-break-after: always;
+                box-sizing: border-box;
+                padding: 1.5cm 2.5cm !important; /* هوامش داخلية للكارت */
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                overflow: hidden;
+            }
+            ::-webkit-scrollbar {
+                display: none;
+            }
+            /* إخفاء واجهة المستخدم العادية أثناء الطباعة */
+            .print-hidden {
+                display: none !important;
+            }
+        }
+    </style>
+
     <!-- استيراد مكتبات React و Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-[#141218]">
+<body class="bg-[#141218] min-h-screen selection:bg-[#D0BCFF] selection:text-[#381E72]">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-
-        // --- مفتاح التشفير السري (SALT) - لا تقم بتغييره إلا إذا غيرته في مولد الأكواد أيضاً ---
-        const SECRET_SALT = "LATIN_MASTER_KEY_2026_PRO";
-
-        // دالة التشفير وتوليد الكود (نفسها في التطبيقين)
-        function generateLicenseCode(deviceId) {
-            const str = deviceId + SECRET_SALT;
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; 
-            }
-            const positiveHash = Math.abs(hash).toString(16).toUpperCase();
-            return positiveHash.substring(0, 4) + "-" + positiveHash.substring(4).padEnd(4, '0');
-        }
 
         // --- أيقونات SVG ---
         const BookOpen = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
@@ -76,30 +95,22 @@
         const ChevronLeft = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="15 18 9 12 15 6"></polyline></svg>;
         const CheckCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
         const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
-        const LockIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
-        const PhoneIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
+        const ChevronDown = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 12 15 18 9"></polyline></svg>;
+        const PrinterIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>;
         
         const AutoNextIcon = ({ className, active }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                {active ? (
-                    <><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></>
-                ) : (
-                    <><polygon points="5 4 15 12 5 20 5 4"></polygon><polygon points="13 4 23 12 13 20 13 4"></polygon></>
-                )}
+                {active ? <><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></> : <><polygon points="5 4 15 12 5 20 5 4"></polygon><polygon points="13 4 23 12 13 20 13 4"></polygon></>}
             </svg>
         );
         const LoopIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>;
         const ModeIcon = ({ className, active }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                {active ? (
-                    <><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></>
-                ) : (
-                    <><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></>
-                )}
+                {active ? <><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></> : <><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></>}
             </svg>
         );
 
-        // --- البيانات الإعرابية (كما هي) ---
+        // --- البيانات الإعرابية الدقيقة لـ 30 جملة ---
         const sentencesData = [
             {
                 number: "31", latin: "Puella bona rosam pulchram amat.", arabic: "الفتاة الطيبة تُحب الوردة الجميلة.",
@@ -134,7 +145,7 @@
             {
                 number: "34", latin: "Femina clara fabulam longam narrat.", arabic: "المرأة المشهورة تروي قصة طويلة.",
                 words: [
-                    { id: 1, latin: "Femina", arabic: "المرأة", type: { label: "اسم", expl: "شخص." }, details: [{ label: "مجموعة أولى", expl: "تصريف أول." }, { label: "مؤنث", expl: "طبيعة الكلمة." }, { label: "مفرد", expl: "مفرد." }, { label: "فاعل", expl: "نهاية '-a' المرفوعة." }] },
+                    { id: 1, latin: "Femina", arabic: "المرأة", type: { label: "اسم", expl: "شخص." }, details: [{ label: "مجموعة أولى", expl: "تصريف أول." }, { label: "مؤنث", expl: "مؤنثة." }, { label: "مفرد", expl: "مفرد." }, { label: "فاعل", expl: "نهاية '-a' المرفوعة." }] },
                     { id: 2, latin: "clara", arabic: "المشهورة", type: { label: "صفة", expl: "تصف المرأة." }, details: [{ label: "مجموعة أولى", expl: "تصريف أول." }, { label: "مؤنث", expl: "تطابق." }, { label: "مفرد", expl: "تطابق." }, { label: "فاعل", expl: "تطابق المرفوع." }] },
                     { id: 3, latin: "fabulam", arabic: "قصة", type: { label: "اسم", expl: "شيء معنوي." }, details: [{ label: "مجموعة أولى", expl: "تصريف أول." }, { label: "مؤنث", expl: "طبيعة الكلمة." }, { label: "مفرد", expl: "قصة واحدة." }, { label: "مفعول به مباشر", expl: "ختمت بـ '-am' لتؤكد النصب." }] },
                     { id: 4, latin: "longam", arabic: "طويلة", type: { label: "صفة", expl: "تصف القصة." }, details: [{ label: "مجموعة أولى", expl: "تصريف أول." }, { label: "مؤنث", expl: "تطابق." }, { label: "مفرد", expl: "تطابق." }, { label: "مفعول به مباشر", expl: "استنساخ نهاية النصب." }] },
@@ -387,331 +398,28 @@
                     { id: 1, latin: "Navis", arabic: "السفينة", type: { label: "اسم", expl: "شيء." }, details: [{ label: "مجموعة ثالثة", expl: "تنتهي بـ '-is'." }, { label: "مؤنث", expl: "سفينة." }, { label: "مفرد", expl: "مفرد." }, { label: "فاعل", expl: "الرفع بصيغتها المعجمية." }] },
                     { id: 2, latin: "magna", arabic: "الكبيرة", type: { label: "صفة", expl: "تصف." }, details: [{ label: "مجموعة أولى", expl: "تصريف أول." }, { label: "مؤنث", expl: "تطابق." }, { label: "مفرد", expl: "تطابق." }, { label: "فاعل", expl: "تطابق الفاعل المؤنث بالنهاية '-a'." }] },
                     { id: 3, latin: "in", arabic: "في", type: { label: "حرف جر", expl: "حرف مبني لا يتأثر." }, details: [{ label: "لا ينتمي لمجموعة", expl: "الحروف مبنية." }, { label: "لا ينتمي لجنس", expl: "لا جنس له." }, { label: "لا عدد له", expl: "مبني." }, { label: "يجبر ما بعده", expl: "عندما يعني (الاستقرار في مكان) يُجبر الاسم الذي يليه على أخذ حالة المفعول أداة (الجر/Ablative)." }] }, 
-                    { id: 4, latin: "portu", arabic: "الميناء", type: { label: "اسم", expl: "مكان." }, details: [{ label: "مجموعة رابعة", expl: "كلمة portus مبنية على الجذر '-u' وتنتمي للمجموعة الرابعة النادرة." }, { label: "مذكر", expl: "مذكر." }, { label: "مفرد", expl: "مفرد." }, { label: "مفعول أداة", expl: "قوة حرف الجر in فرضت على الكلمة التحول لحالة القابل/الأداة (Ablative)، والنهاية '-u' المجردة هي البصمة القطعية لهذه الحالة في المجموعة الرابعة." }] },
+                    { id: 4, latin: "portu", arabic: "الميناء", type: { label: "اسم", expl: "مكان." }, details: [{ label: "مجموعة رابعة", expl: "كلمة portus مبنية على الجذر '-u' وتنتمي للمجموعة الرابعة النادرة." }, { label: "مذكر", expl: "مذكر." }, { label: "مفرد", expl: "مفرد." }, { label: "مفعول أداة", expl: "قوة حرف الجر in فرضت على الكلمة التحول لحالة القابل/الأداة (Ablative)، والنهاية '-u' المجردة هي البصمة القطعية لهذه الحالة." }] },
                     { id: 5, latin: "manet", arabic: "تبقى", type: { label: "فعل", expl: "حدث." }, details: [{ label: "مجموعة ثانية", expl: "manere بكسرة طويلة." }, { label: "مضارع بسيط", expl: "الحاضر." }, { label: "هي", expl: "الضمير '-t' عائد على السفينة." }, { label: "خبري", expl: "حقيقة." }, { label: "مبني للمعلوم", expl: "الفاعل معلوم." }] }
                 ]
             },
             {
                 number: "60", latin: "Rex severus hostes malos vincit.", arabic: "الملك الصارم يهزم الأعداء الأشرار.",
                 words: [
-                    { id: 1, latin: "Rex", arabic: "الملك", type: { label: "اسم", expl: "شخص." }, details: [{ label: "مجموعة ثالثة", expl: "جذرها الحقيقي reg، يتحول إلى rex في الرفع. وهذا من تعقيدات المجموعة الثالثة." }, { label: "مذكر", expl: "مذكر." }, { label: "مفرد", expl: "مفرد." }, { label: "فاعل", expl: "الشكل القياسي للرفع." }] },
+                    { id: 1, latin: "Rex", arabic: "الملك", type: { label: "اسم", expl: "شخص." }, details: [{ label: "مجموعة ثالثة", expl: "جذرها الحقيقي reg، يتحول إلى rex في الرفع." }, { label: "مذكر", expl: "مذكر." }, { label: "مفرد", expl: "مفرد." }, { label: "فاعل", expl: "الشكل القياسي للرفع." }] },
                     { id: 2, latin: "severus", arabic: "الصارم", type: { label: "صفة", expl: "تصف." }, details: [{ label: "مجموعة ثانية", expl: "تصريف ثانٍ." }, { label: "مذكر", expl: "تطابق." }, { label: "مفرد", expl: "تطابق." }, { label: "فاعل", expl: "تطابق المرفوع بالنهاية '-us'." }] },
-                    { id: 3, latin: "hostes", arabic: "الأعداء", type: { label: "اسم", expl: "أشخاص." }, details: [{ label: "مجموعة ثالثة", expl: "أصل المفرد hostis." }, { label: "مذكر", expl: "مذكر." }, { label: "جمع", expl: "أكثر من عدو." }, { label: "مفعول به مباشر", expl: "النهاية '-es' هي الدليل القاطع على نصب الجمع للمذكر في المجموعة الثالثة. (حالة الرفع تأخذ نفس النهاية، ولكننا نستدل بالنصب من المنطق الرياضي للجملة لوجود الملك كفاعل)." }] },
-                    { id: 4, latin: "malos", arabic: "الأشرار", type: { label: "صفة", expl: "تصف الأعداء." }, details: [{ label: "مجموعة ثانية", expl: "هذه الصفة تتصرف وفق المجموعة الثانية." }, { label: "مذكر", expl: "تطابق المذكر." }, { label: "جمع", expl: "تطابق الجمع." }, { label: "مفعول به مباشر", expl: "تجلّي التطابق العبقري: الصفة أخذت نهاية المجموعة الثانية للجمع المنصوب '-os' لتطابق الأعداء المجموعة الثالثة '-es'. اللاتينية توحد (الحالة الإعرابية) ولا تكترث لتوحيد (الحروف)!" }] },
-                    { id: 5, latin: "vincit", arabic: "يهزم", type: { label: "فعل", expl: "حدث." }, details: [{ label: "مجموعة ثالثة", expl: "vincere." }, { label: "مضارع بسيط", expl: "الحاضر." }, { label: "هو", expl: "الضمير '-it'." }, { label: "خبري", expl: "حقيقة." }, { label: "مبني للمعلوم", expl: "الفاعل معلوم." }] }
+                    { id: 3, latin: "hostes", arabic: "الأعداء", type: { label: "اسم", expl: "أشخاص." }, details: [{ label: "مجموعة ثالثة", expl: "أصل المفرد hostis." }, { label: "مذكر", expl: "مذكر." }, { label: "جمع", expl: "أكثر من عدو." }, { label: "مفعول به مباشر", expl: "النهاية '-es' هي الدليل القاطع على نصب الجمع للمذكر في 3." }] },
+                    { id: 4, latin: "malos", arabic: "الأشرار", type: { label: "صفة", expl: "تصف الأعداء." }, details: [{ label: "مجموعة ثانية", expl: "هذه الصفة تتصرف وفق 2." }, { label: "مذكر", expl: "تطابق المذكر." }, { label: "جمع", expl: "تطابق الجمع." }, { label: "مفعول به مباشر", expl: "الصفة أخذت نهاية 2 للجمع المنصوب '-os' لتطابق الأعداء (3) '-es'. اللاتينية توحد الحالة الإعرابية ولا تكترث لتوحيد الحروف!" }] },
+                    { id: 5, latin: "vincit", arabic: "يهزم", type: { label: "فعل", expl: "حدث." }, details: [{ label: "مجموعة ثالثة", expl: "vincere." }, { label: "مضارع بسيط", expl: "الحاضر." }, { label: "هو", expl: "الضمير '-it'." }, { label: "خبري", expl: "حقيقة." }, { label: "مبني للمعلوم", expl: "معلوم." }] }
                 ]
             }
         ];
 
-        // --- شاشة الحماية بالترخيص ---
-        function LicenseScreen({ deviceId, onValidCode }) {
-            const [inputCode, setInputCode] = useState("");
-            const [error, setError] = useState(false);
-
-            const handleVerify = () => {
-                const expectedCode = generateLicenseCode(deviceId);
-                if (inputCode.trim().toUpperCase() === expectedCode) {
-                    onValidCode();
-                } else {
-                    setError(true);
-                }
-            };
-
-            const waLink = `https://wa.me/201144425002?text=أهلاً، أريد كود تفعيل لتطبيق المترجم اللاتيني.%0Aمعرف جهازي هو: ${deviceId}`;
-
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-[#141218] p-4 text-[#E6E0E9] font-notokufi" dir="rtl">
-                    <div className="bg-[#2B2930] max-w-md w-full p-8 rounded-[28px] shadow-2xl border border-[#49454F] text-center animate-fade-in-slide">
-                        <div className="mx-auto w-16 h-16 bg-[#D0BCFF] text-[#381E72] rounded-full flex items-center justify-center mb-6 shadow-lg">
-                            <LockIcon className="w-8 h-8" />
-                        </div>
-                        <h1 className="text-2xl font-bold mb-2">التطبيق مغلق</h1>
-                        <p className="opacity-80 mb-6 text-sm">هذا التطبيق مخصص فقط لمن يملك كود التفعيل. الكود يُستخدم لجهاز واحد فقط.</p>
-                        
-                        <div className="bg-black/20 p-4 rounded-xl mb-6 border border-white/5">
-                            <p className="text-xs opacity-60 mb-1">مُعرف جهازك (Device ID):</p>
-                            <p className="text-xl font-bold font-poppins tracking-wider text-[#D0BCFF]">{deviceId}</p>
-                        </div>
-
-                        <input 
-                            type="text" 
-                            placeholder="أدخل كود التفعيل هنا (XXXX-XXXX)"
-                            value={inputCode}
-                            onChange={(e) => { setInputCode(e.target.value); setError(false); }}
-                            className={`w-full bg-[#141218] border ${error ? 'border-red-500' : 'border-[#49454F]'} p-4 rounded-xl mb-4 text-center font-poppins text-lg tracking-widest focus:outline-none focus:border-[#D0BCFF] transition-colors`}
-                            dir="ltr"
-                        />
-                        {error && <p className="text-red-400 text-sm mb-4">الكود غير صحيح لهذا الجهاز!</p>}
-
-                        <button 
-                            onClick={handleVerify}
-                            className="w-full bg-[#D0BCFF] text-[#381E72] py-4 rounded-xl font-bold text-lg hover:bg-[#EADDFF] transition-all shadow-md active:scale-95 mb-6"
-                        >
-                            تفعيل التطبيق
-                        </button>
-
-                        <div className="border-t border-[#49454F] pt-6">
-                            <p className="text-sm opacity-80 mb-3">لا تملك كود تفعيل؟</p>
-                            <a 
-                                href={waLink} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 w-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 py-3 rounded-xl transition-all font-bold"
-                            >
-                                <PhoneIcon className="w-5 h-5" />
-                                طلب كود عبر واتساب
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        // --- مكون الاختبار والمراجعة ---
-        function QuizMode({ sentences, theme, playAudio }) {
-            const [quizState, setQuizState] = useState({
-                sentenceIdx: 0,
-                wordIdx: -1, 
-                isFinished: false
-            });
-            const [answersRecord, setAnswersRecord] = useState([]);
-            const [currentOptions, setCurrentOptions] = useState([]);
-            const [feedback, setFeedback] = useState(null); 
-
-            const getParsingString = (word) => {
-                if(!word.details || word.details.length === 0) return word.type.label;
-                return `${word.type.label} [ ${word.details.map(d=>d.label).join(' - ')} ]`;
-            };
-
-            // قراءة الكلمة أو الجملة عند الانتقال لها
-            useEffect(() => {
-                if (quizState.isFinished) return;
-                const sentence = sentences[quizState.sentenceIdx];
-                if (quizState.wordIdx >= 0) {
-                    const word = sentence.words[quizState.wordIdx];
-                    playAudio(word.latin, 'it-IT');
-                }
-            }, [quizState.sentenceIdx, quizState.wordIdx, quizState.isFinished, sentences]);
-
-            useEffect(() => {
-                if (quizState.isFinished) return;
-                
-                const sentence = sentences[quizState.sentenceIdx];
-                if (quizState.wordIdx === -1) {
-                    const wrongPool = sentences.filter((_, i) => i !== quizState.sentenceIdx).map(s => s.arabic);
-                    const shuffledWrong = wrongPool.sort(() => 0.5 - Math.random()).slice(0, 3);
-                    const options = [...shuffledWrong, sentence.arabic].sort(() => 0.5 - Math.random());
-                    setCurrentOptions(options);
-                } else {
-                    const word = sentence.words[quizState.wordIdx];
-                    const correctParsing = getParsingString(word);
-                    const wrongPool = sentences.flatMap(s => s.words)
-                        .filter(w => getParsingString(w) !== correctParsing)
-                        .map(w => getParsingString(w));
-                    const uniqueWrongPool = [...new Set(wrongPool)];
-                    const shuffledWrong = uniqueWrongPool.sort(() => 0.5 - Math.random()).slice(0, 3);
-                    const options = [...shuffledWrong, correctParsing].sort(() => 0.5 - Math.random());
-                    setCurrentOptions(options);
-                }
-            }, [quizState.sentenceIdx, quizState.wordIdx, quizState.isFinished, sentences]);
-
-            const handleOptionClick = (opt) => {
-                if (feedback) return; 
-                
-                const sentence = sentences[quizState.sentenceIdx];
-                let isCorrect = false;
-                let correctAnswer = "";
-                let questionText = "";
-
-                if (quizState.wordIdx === -1) {
-                    correctAnswer = sentence.arabic;
-                    isCorrect = opt === correctAnswer;
-                    questionText = `ترجمة: ${sentence.latin}`;
-                } else {
-                    const word = sentence.words[quizState.wordIdx];
-                    correctAnswer = getParsingString(word);
-                    isCorrect = opt === correctAnswer;
-                    questionText = `إعراب كلمة: ${word.latin}`;
-                }
-
-                setAnswersRecord(prev => [...prev, { 
-                    question: questionText, 
-                    sentenceContext: sentence.latin,
-                    userAnswer: opt, 
-                    correctAnswer: correctAnswer, 
-                    isCorrect 
-                }]);
-                
-                setFeedback({ selected: opt, isCorrect });
-
-                // تشغيل صوت التغذية الراجعة
-                if(isCorrect) {
-                    playAudio("صحيح", "ar-SA");
-                } else {
-                    playAudio("غير صحيح", "ar-SA");
-                }
-
-                setTimeout(() => {
-                    setFeedback(null);
-                    advanceState();
-                }, 1200);
-            };
-
-            const advanceState = () => {
-                const sentence = sentences[quizState.sentenceIdx];
-                if (quizState.wordIdx < sentence.words.length - 1) {
-                    setQuizState(prev => ({ ...prev, wordIdx: prev.wordIdx + 1 }));
-                } else {
-                    if (quizState.sentenceIdx < sentences.length - 1) {
-                        setQuizState(prev => ({ ...prev, sentenceIdx: prev.sentenceIdx + 1, wordIdx: -1 }));
-                    } else {
-                        setQuizState(prev => ({ ...prev, isFinished: true }));
-                    }
-                }
-            };
-
-            const resetQuiz = () => {
-                setQuizState({ sentenceIdx: 0, wordIdx: -1, isFinished: false });
-                setAnswersRecord([]);
-                setFeedback(null);
-            };
-
-            if (quizState.isFinished) {
-                const correctCount = answersRecord.filter(a => a.isCorrect).length;
-                const percentage = Math.round((correctCount / answersRecord.length) * 100);
-                const mistakes = answersRecord.filter(a => !a.isCorrect);
-
-                return (
-                    <div className="animate-fade-in-slide space-y-6">
-                        <div className={`${theme.heroBg} rounded-[28px] p-8 shadow-md text-center`}>
-                            <h2 className={`text-3xl font-bold mb-4 ${theme.heroText}`}>انتهت المراجعة!</h2>
-                            <div className={`text-5xl font-black mb-6 ${theme.heroText}`}>{percentage}%</div>
-                            <p className={`text-lg opacity-80 ${theme.heroText}`}>
-                                أجبت بشكل صحيح على {correctCount} من أصل {answersRecord.length} سؤال.
-                            </p>
-                            <button onClick={resetQuiz} className={`mt-8 px-8 py-3 rounded-xl font-bold transition-transform active:scale-95 shadow-md ${theme.activeIconBg}`}>
-                                إعادة الاختبار
-                            </button>
-                        </div>
-                        
-                        {mistakes.length > 0 && (
-                            <div className="mt-8">
-                                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-red-500">
-                                    <AlertCircle className="w-6 h-6"/> راجع أخطاءك لتتعلم منها:
-                                </h3>
-                                <div className="space-y-4">
-                                    {mistakes.map((m, i) => (
-                                        <div key={i} className={`${theme.cardBg} border border-red-500/30 rounded-[24px] p-5 shadow-sm`}>
-                                            <p className="text-sm opacity-60 mb-1">{m.sentenceContext}</p>
-                                            <p className="font-bold text-lg mb-3">{m.question}</p>
-                                            <div className="flex flex-col gap-2">
-                                                <div className="bg-red-500/10 text-red-500 p-3 rounded-xl border border-red-500/20">
-                                                    <span className="font-bold text-sm block mb-1">إجابتك:</span>
-                                                    <span className="opacity-90">{m.userAnswer}</span>
-                                                </div>
-                                                <div className="bg-green-500/10 text-green-600 p-3 rounded-xl border border-green-500/20">
-                                                    <span className="font-bold text-sm block mb-1">الصواب هو:</span>
-                                                    <span className="opacity-90">{m.correctAnswer}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            }
-
-            const currentSentence = sentences[quizState.sentenceIdx];
-            const isSentenceQuestion = quizState.wordIdx === -1;
-            const currentWord = !isSentenceQuestion ? currentSentence.words[quizState.wordIdx] : null;
-
-            return (
-                <div className="animate-fade-in-slide flex flex-col items-center max-w-3xl mx-auto w-full">
-                    
-                    <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full mb-8 overflow-hidden">
-                        <div 
-                            className={`h-full ${theme.activeIconBg} transition-all duration-300`} 
-                            style={{ width: `${(quizState.sentenceIdx / sentences.length) * 100}%` }}
-                        ></div>
-                    </div>
-
-                    <div className="text-center mb-8 w-full">
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-black/5 dark:bg-white/5 text-sm font-bold opacity-70 mb-4">
-                            الجملة {currentSentence.number} من {sentences.length}
-                        </span>
-                        
-                        <div className="relative">
-                            <h2 className="text-3xl md:text-4xl font-poppins font-bold tracking-wide leading-relaxed mb-6" dir="ltr">
-                                {isSentenceQuestion ? (
-                                    <span>{currentSentence.latin}</span>
-                                ) : (
-                                    currentSentence.latin.split(' ').map((w, i) => {
-                                        const cleanW = w.replace(/[^a-zA-Z]/g, '');
-                                        const isHighlight = cleanW === currentWord.latin;
-                                        return (
-                                            <span key={i} className={`${isHighlight ? 'text-[#6750A4] dark:text-[#D0BCFF] underline decoration-2 underline-offset-4' : 'opacity-50'} transition-all mx-1`}>
-                                                {w}
-                                            </span>
-                                        );
-                                    })
-                                )}
-                            </h2>
-                        </div>
-
-                        <div className="flex items-center justify-center gap-2 text-xl font-bold bg-[#EADDFF]/20 dark:bg-[#4F378B]/20 py-4 px-6 rounded-2xl border border-[#EADDFF]/30 dark:border-[#4F378B]/30">
-                            {isSentenceQuestion ? (
-                                <span>اختر الترجمة الصحيحة للجملة:</span>
-                            ) : (
-                                <span>ما هو التحليل الإعرابي الدقيق لكلمة <span className="text-[#6750A4] dark:text-[#D0BCFF]">({currentWord.latin})</span>؟</span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 w-full">
-                        {currentOptions.map((opt, i) => {
-                            let btnStyle = `${theme.cardBg} border ${theme.cardBorder} hover:border-[#6750A4]/50 dark:hover:border-[#D0BCFF]/50 hover:shadow-md`;
-                            let icon = null;
-
-                            if (feedback && feedback.selected === opt) {
-                                btnStyle = feedback.isCorrect 
-                                    ? 'bg-green-500 text-white border-green-600 shadow-lg transform scale-[1.02]' 
-                                    : 'bg-red-500 text-white border-red-600 shadow-lg transform scale-[0.98]';
-                                icon = feedback.isCorrect ? <CheckCircle className="w-6 h-6"/> : <XIcon className="w-6 h-6"/>;
-                            } else if (feedback && !feedback.isCorrect && opt === answersRecord[answersRecord.length]?.correctAnswer) {
-                                // Highlight the correct answer
-                            }
-
-                            return (
-                                <button 
-                                    key={i} 
-                                    onClick={() => handleOptionClick(opt)}
-                                    disabled={feedback !== null}
-                                    className={`relative p-5 rounded-2xl text-lg font-medium transition-all duration-200 flex items-center justify-between text-right ${btnStyle}`}
-                                >
-                                    <span>{opt}</span>
-                                    {icon}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        }
-
-        // --- التطبيق الرئيسي المجمّع ---
         function App() {
-            // نظام الترخيص
-            const [isLicensed, setIsLicensed] = useState(false);
-            const [deviceId, setDeviceId] = useState("");
-
             const [isDark, setIsDark] = useState(true);
             const [activeTab, setActiveTab] = useState('شرح'); 
             const [selectedChip, setSelectedChip] = useState(null); 
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             
-            // حالة السلايدر والمحرك
             const [currentCardIndex, setCurrentCardIndex] = useState(0);
             const [isPlayingSequence, setIsPlayingSequence] = useState(false);
             const isPlayingRef = useRef(false);
@@ -736,22 +444,6 @@
             const [readingSpeed, setReadingSpeed] = useState(1.3);
             const readingSpeedRef = useRef(1.3);
 
-            // إعداد الترخيص عند التحميل
-            useEffect(() => {
-                let savedId = localStorage.getItem('latinAppDeviceId');
-                if (!savedId) {
-                    savedId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                    localStorage.setItem('latinAppDeviceId', savedId);
-                }
-                setDeviceId(savedId);
-
-                const licensed = localStorage.getItem('latinAppLicensed');
-                if (licensed === 'true') {
-                    setIsLicensed(true);
-                }
-            }, []);
-
-            // مزامنة الـ Refs
             useEffect(() => { isSingleCardModeRef.current = isSingleCardMode; }, [isSingleCardMode]);
             useEffect(() => { isLoopModeRef.current = isLoopMode; }, [isLoopMode]);
             useEffect(() => { isSentencesOnlyModeRef.current = isSentencesOnlyMode; }, [isSentencesOnlyMode]);
@@ -766,32 +458,30 @@
                     if(voices.length === 0) return;
                     setAvailableVoices(voices);
 
-                    const isEdge = navigator.userAgent.indexOf("Edg") !== -1;
-                    const isChrome = navigator.userAgent.indexOf("Chrome") !== -1 && !isEdge;
+                    const ua = navigator.userAgent.toLowerCase();
+                    const isEdge = ua.includes("edg");
 
                     setSelectedArVoiceURI(prev => {
                         if (prev) return prev;
-                        const arVoices = voices.filter(v => v.lang.startsWith('ar'));
                         let bestAr;
-                        if (isChrome) {
-                            // في كروم، الأولوية لجوجل
-                            bestAr = arVoices.find(v => v.name.includes('Google')) || arVoices.find(v => v.name.includes('Shaker')) || arVoices[0];
+                        if (isEdge) {
+                            bestAr = voices.find(v => v.lang.startsWith('ar') && /shaker|شاكر/i.test(v.name)) || voices.find(v => v.lang.startsWith('ar') && /microsoft/i.test(v.name));
                         } else {
-                            // في ايدج وغيره، الأولوية لشاكر أو مايكروسوفت
-                            bestAr = arVoices.find(v => v.name.includes('Microsoft')) || arVoices.find(v => v.name.includes('Shaker')) || arVoices[0];
+                            bestAr = voices.find(v => v.lang.startsWith('ar') && /google/i.test(v.name));
                         }
+                        if (!bestAr) bestAr = voices.find(v => v.lang.startsWith('ar'));
                         return bestAr ? bestAr.voiceURI : '';
                     });
 
                     setSelectedLaVoiceURI(prev => {
                         if (prev) return prev;
-                        const laVoices = voices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la'));
                         let bestLa;
-                        if (isChrome) {
-                            bestLa = laVoices.find(v => v.name.includes('Google')) || laVoices.find(v => v.name.includes('Isabella')) || laVoices[0];
+                        if (isEdge) {
+                            bestLa = voices.find(v => (v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')) && /isabella/i.test(v.name)) || voices.find(v => (v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')) && /microsoft/i.test(v.name));
                         } else {
-                            bestLa = laVoices.find(v => v.name.includes('Microsoft')) || laVoices.find(v => v.name.includes('Isabella')) || laVoices[0];
+                            bestLa = voices.find(v => (v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')) && /google/i.test(v.name));
                         }
+                        if (!bestLa) bestLa = voices.find(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la'));
                         return bestLa ? bestLa.voiceURI : '';
                     });
                 };
@@ -801,15 +491,6 @@
                     window.speechSynthesis.onvoiceschanged = loadVoices;
                 }
             }, []);
-
-            if (!isLicensed && deviceId) {
-                return <LicenseScreen deviceId={deviceId} onValidCode={() => {
-                    localStorage.setItem('latinAppLicensed', 'true');
-                    setIsLicensed(true);
-                }} />;
-            }
-
-            if (!isLicensed) return null; // تجنباً لوميض الشاشة أثناء التحميل
 
             const getVoiceForLang = (lang) => {
                 const voices = availableVoicesRef.current;
@@ -824,13 +505,10 @@
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                     const utterance = new SpeechSynthesisUtterance(text);
-                    
                     const voice = getVoiceForLang(lang);
                     if (voice) utterance.voice = voice;
-                    
                     utterance.lang = (lang === 'la' || lang === 'it-IT') ? 'it-IT' : 'ar-SA';
                     utterance.rate = readingSpeedRef.current;
-                    
                     window.speechSynthesis.speak(utterance);
                 }
             };
@@ -850,13 +528,10 @@
                     return new Promise((resolve) => {
                         if (!isPlayingRef.current) return resolve();
                         const utterance = new SpeechSynthesisUtterance(text);
-                        
                         const voice = getVoiceForLang(lang);
                         if (voice) utterance.voice = voice;
-                        
                         utterance.lang = (lang === 'la' || lang === 'it-IT') ? 'it-IT' : 'ar-SA';
                         utterance.rate = readingSpeedRef.current;
-                        
                         utterance.onend = resolve;
                         utterance.onerror = resolve; 
                         window.speechSynthesis.speak(utterance);
@@ -960,342 +635,413 @@
                 isPlayingRef.current = false;
             };
 
+            const handlePrint = () => {
+                window.print();
+            };
+
             const theme = {
-                bg: isDark ? 'bg-[#141218]' : 'bg-[#FEF7FF]',
-                text: isDark ? 'text-[#E6E0E9]' : 'text-[#1D1B20]',
-                headerBg: isDark ? 'bg-[#141218]' : 'bg-[#FEF7FF]',
-                heroBg: isDark ? 'bg-[#4F378B]' : 'bg-[#EADDFF]',
-                heroText: isDark ? 'text-[#EADDFF]' : 'text-[#21005D]',
-                heroDivider: isDark ? 'bg-[#EADDFF]/20' : 'bg-[#21005D]/20',
-                cardBg: isDark ? 'bg-[#2B2930]' : 'bg-[#F3EDF7]',
-                cardBorder: isDark ? 'border-[#49454F]' : 'border-transparent',
-                chipPrimaryBg: isDark ? 'bg-[#D0BCFF]' : 'bg-[#6750A4]',
-                chipPrimaryText: isDark ? 'text-[#381E72]' : 'text-white',
-                chipSecBg: isDark ? 'bg-[#4A4458]' : 'bg-[#E8DEF8]',
-                chipSecText: isDark ? 'text-[#E8DEF8]' : 'text-[#1D192B]',
-                iconHover: isDark ? 'hover:bg-[#E6E0E9]/10' : 'hover:bg-[#1D1B20]/10',
-                audioIcon: isDark ? 'text-[#D0BCFF] hover:text-[#EADDFF]' : 'text-[#6750A4] hover:text-[#21005D]',
-                modalOverlay: 'bg-black/60 backdrop-blur-sm',
-                modalBg: isDark ? 'bg-[#2B2930]' : 'bg-[#FEF7FF]',
-                modalBtn: isDark ? 'bg-[#D0BCFF] text-[#381E72]' : 'bg-[#6750A4] text-white',
-                inputBg: isDark ? 'bg-[#141218] text-[#E6E0E9]' : 'bg-white text-[#1D1B20]',
-                sliderBg: isDark ? 'bg-white/20' : 'bg-black/20',
-                sliderAccent: isDark ? 'accent-[#D0BCFF]' : 'accent-[#6750A4]',
-                activeIconBg: isDark ? 'bg-[#D0BCFF] text-[#381E72]' : 'bg-[#6750A4] text-white',
-                inactiveIconBg: isDark ? 'bg-[#EADDFF]/10 text-[#EADDFF] hover:bg-[#EADDFF]/20' : 'bg-[#6750A4]/10 text-[#6750A4] hover:bg-[#6750A4]/20'
+                bg: isDark ? 'bg-[#141218]' : 'bg-[#FEF7FF]', text: isDark ? 'text-[#E6E0E9]' : 'text-[#1D1B20]',
+                headerBg: isDark ? 'bg-[#141218]' : 'bg-[#FEF7FF]', heroBg: isDark ? 'bg-[#4F378B]' : 'bg-[#EADDFF]',
+                heroText: isDark ? 'text-[#EADDFF]' : 'text-[#21005D]', heroDivider: isDark ? 'bg-[#EADDFF]/20' : 'bg-[#21005D]/20',
+                cardBg: isDark ? 'bg-[#2B2930]' : 'bg-[#F3EDF7]', cardBorder: isDark ? 'border-[#49454F]' : 'border-transparent',
+                chipPrimaryBg: isDark ? 'bg-[#D0BCFF]' : 'bg-[#6750A4]', chipPrimaryText: isDark ? 'text-[#381E72]' : 'text-white',
+                chipSecBg: isDark ? 'bg-[#4A4458]' : 'bg-[#E8DEF8]', chipSecText: isDark ? 'text-[#E8DEF8]' : 'text-[#1D192B]',
+                iconHover: isDark ? 'hover:bg-[#E6E0E9]/10' : 'hover:bg-[#1D1B20]/10', audioIcon: isDark ? 'text-[#D0BCFF] hover:text-[#EADDFF]' : 'text-[#6750A4] hover:text-[#21005D]',
+                modalOverlay: 'bg-black/60 backdrop-blur-sm', modalBg: isDark ? 'bg-[#2B2930]' : 'bg-[#FEF7FF]',
+                modalBtn: isDark ? 'bg-[#D0BCFF] text-[#381E72]' : 'bg-[#6750A4] text-white', inputBg: isDark ? 'bg-[#1E1B24] text-[#E6E0E9]' : 'bg-white text-[#1D1B20]',
+                sliderBg: isDark ? 'bg-white/20' : 'bg-black/20', sliderAccent: isDark ? 'accent-[#D0BCFF]' : 'accent-[#6750A4]',
+                activeIconBg: isDark ? 'bg-[#D0BCFF] text-[#381E72]' : 'bg-[#6750A4] text-white', inactiveIconBg: isDark ? 'bg-[#EADDFF]/10 text-[#EADDFF] hover:bg-[#EADDFF]/20' : 'bg-[#6750A4]/10 text-[#6750A4] hover:bg-[#6750A4]/20'
+            };
+
+            const QuizMode = () => {
+                const [quizState, setQuizState] = useState({ sentenceIdx: 0, wordIdx: -1, isFinished: false });
+                const [answersRecord, setAnswersRecord] = useState([]);
+                const [currentOptions, setCurrentOptions] = useState([]);
+                const [feedback, setFeedback] = useState(null); 
+
+                const getParsingString = (word) => {
+                    if(!word.details || word.details.length === 0) return word.type.label;
+                    return `${word.type.label} [ ${word.details.map(d=>d.label).join(' - ')} ]`;
+                };
+
+                const currentSentence = sentencesData[quizState.sentenceIdx]; 
+
+                // قراءة الكلمة عند التخطي للجديد
+                useEffect(() => {
+                    if (quizState.isFinished || feedback) return;
+                    if (quizState.wordIdx >= 0) playAudio(currentSentence.words[quizState.wordIdx].latin, 'it-IT');
+                }, [quizState.sentenceIdx, quizState.wordIdx, quizState.isFinished]);
+
+                useEffect(() => {
+                    if (quizState.isFinished) return;
+                    
+                    if (quizState.wordIdx === -1) {
+                        const wrongPool = sentencesData.filter((_, i) => i !== quizState.sentenceIdx).map(s => s.arabic);
+                        setCurrentOptions([...wrongPool.sort(() => 0.5 - Math.random()).slice(0, 3), currentSentence.arabic].sort(() => 0.5 - Math.random()));
+                    } else {
+                        const correctParsing = getParsingString(currentSentence.words[quizState.wordIdx]);
+                        const wrongPool = [...new Set(sentencesData.flatMap(s => s.words).map(getParsingString).filter(p => p !== correctParsing))];
+                        setCurrentOptions([...wrongPool.sort(() => 0.5 - Math.random()).slice(0, 3), correctParsing].sort(() => 0.5 - Math.random()));
+                    }
+                }, [quizState.sentenceIdx, quizState.wordIdx, quizState.isFinished]);
+
+                const handleOptionClick = (opt) => {
+                    if (feedback) return; 
+                    let isCorrect = false, correctAnswer = "", questionText = "";
+                    if (quizState.wordIdx === -1) {
+                        correctAnswer = currentSentence.arabic; isCorrect = opt === correctAnswer; questionText = `ترجمة: ${currentSentence.latin}`;
+                    } else {
+                        const word = currentSentence.words[quizState.wordIdx];
+                        correctAnswer = getParsingString(word); isCorrect = opt === correctAnswer; questionText = `إعراب كلمة: ${word.latin}`;
+                    }
+                    setAnswersRecord(prev => [...prev, { question: questionText, sentenceContext: currentSentence.latin, userAnswer: opt, correctAnswer, isCorrect }]);
+                    setFeedback({ selected: opt, isCorrect });
+                    
+                    // لا تنطق شيء للتسريع
+                    
+                    setTimeout(() => {
+                        setFeedback(null);
+                        if (quizState.wordIdx < currentSentence.words.length - 1) setQuizState(prev => ({ ...prev, wordIdx: prev.wordIdx + 1 }));
+                        else {
+                            if (quizState.sentenceIdx < sentencesData.length - 1) setQuizState(prev => ({ ...prev, sentenceIdx: prev.sentenceIdx + 1, wordIdx: -1 }));
+                            else setQuizState(prev => ({ ...prev, isFinished: true }));
+                        }
+                    }, 350); // سرعة فائقة جداً (350 مللي ثانية) لإنهاء الرجفة والتأخير
+                };
+
+                const skipToNextSentence = () => {
+                    window.speechSynthesis.cancel();
+                    setFeedback(null);
+                    if (quizState.sentenceIdx < sentencesData.length - 1) {
+                        setQuizState({ sentenceIdx: quizState.sentenceIdx + 1, wordIdx: -1, isFinished: false });
+                    } else {
+                        setQuizState(prev => ({ ...prev, isFinished: true }));
+                    }
+                };
+
+                const skipToPrevSentence = () => {
+                    window.speechSynthesis.cancel();
+                    setFeedback(null);
+                    if (quizState.sentenceIdx > 0) {
+                        setQuizState({ sentenceIdx: quizState.sentenceIdx - 1, wordIdx: -1, isFinished: false });
+                    }
+                };
+
+                if (quizState.isFinished) {
+                    const correctCount = answersRecord.filter(a => a.isCorrect).length;
+                    const percentage = Math.round((correctCount / answersRecord.length) * 100);
+                    const mistakes = answersRecord.filter(a => !a.isCorrect);
+
+                    return (
+                        <div className="animate-fade-in-slide space-y-6 pb-20 print-hidden">
+                            <div className={`${theme.heroBg} rounded-[28px] p-8 shadow-md text-center`}>
+                                <h2 className={`text-3xl font-bold mb-4 ${theme.heroText}`}>انتهت المراجعة!</h2>
+                                <div className={`text-5xl font-black mb-6 ${theme.heroText}`}>{percentage}%</div>
+                                <p className={`text-lg opacity-80 ${theme.heroText}`}>أجبت بشكل صحيح على {correctCount} من أصل {answersRecord.length} سؤال.</p>
+                                <button onClick={() => {setQuizState({ sentenceIdx: 0, wordIdx: -1, isFinished: false }); setAnswersRecord([]); setFeedback(null);}} className={`mt-8 px-8 py-3 rounded-xl font-bold shadow-md ${theme.activeIconBg}`}>إعادة الاختبار</button>
+                            </div>
+                            
+                            {mistakes.length > 0 && (
+                                <div className="mt-8">
+                                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-red-500"><AlertCircle className="w-6 h-6"/> راجع أخطاءك لتتعلم منها:</h3>
+                                    <div className="space-y-4">
+                                        {mistakes.map((m, i) => (
+                                            <div key={i} className={`${theme.cardBg} border border-red-500/30 rounded-[24px] p-5 shadow-sm`}>
+                                                <p className="text-sm opacity-60 mb-1" dir="ltr">{m.sentenceContext}</p>
+                                                <p className="font-bold text-lg mb-3" dir="rtl">{m.question}</p>
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="bg-red-500/10 text-red-500 p-3 rounded-xl border border-red-500/20"><span className="font-bold block text-sm mb-1">إجابتك:</span> <span className="opacity-90">{m.userAnswer}</span></div>
+                                                    <div className="bg-green-500/10 text-green-600 p-3 rounded-xl border border-green-500/20"><span className="font-bold block text-sm mb-1">الصواب هو:</span> <span className="opacity-90">{m.correctAnswer}</span></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
+
+                const isSentenceQuestion = quizState.wordIdx === -1;
+                const currentWord = !isSentenceQuestion ? currentSentence.words[quizState.wordIdx] : null;
+
+                return (
+                    <div className="animate-fade-in-slide flex flex-col items-center max-w-3xl mx-auto w-full pb-20 print-hidden">
+                        <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full mb-8 overflow-hidden">
+                            <div className={`h-full ${theme.activeIconBg} transition-all duration-300`} style={{ width: `${(quizState.sentenceIdx / sentencesData.length) * 100}%` }}></div>
+                        </div>
+
+                        <div className="text-center mb-8 w-full">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-black/5 dark:bg-white/5 text-sm font-bold opacity-70 mb-4">الجملة {currentSentence.number} من {sentencesData.length}</span>
+                            
+                            {/* تثبيت الطول الأدنى لمنع الرجفة عند تغير النص */}
+                            <div className="relative min-h-[100px] flex items-center justify-center">
+                                <h2 className="text-3xl md:text-4xl font-poppins font-bold tracking-wide leading-relaxed mb-6" dir="ltr">
+                                    {isSentenceQuestion ? <span>{currentSentence.latin}</span> : currentSentence.latin.split(' ').map((w, i) => {
+                                        const cleanW = w.replace(/[^a-zA-Z]/g, '');
+                                        const isHighlight = cleanW === currentWord.latin;
+                                        return <span key={i} className={`${isHighlight ? 'text-[#6750A4] dark:text-[#D0BCFF] underline decoration-2 underline-offset-4' : 'opacity-50'} transition-all mx-1`}>{w}</span>;
+                                    })}
+                                </h2>
+                            </div>
+                            
+                            <div className="flex items-center justify-center gap-2 text-xl font-bold bg-[#EADDFF]/20 dark:bg-[#4F378B]/20 py-4 px-6 rounded-2xl border border-[#EADDFF]/30 dark:border-[#4F378B]/30">
+                                {isSentenceQuestion ? <span>اختر الترجمة الصحيحة للجملة:</span> : <span>ما هو التحليل الإعرابي الدقيق لكلمة <span className="text-[#6750A4] dark:text-[#D0BCFF]">({currentWord.latin})</span>؟</span>}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 w-full">
+                            {currentOptions.map((opt, i) => {
+                                let btnStyle = `${theme.cardBg} border ${theme.cardBorder} hover:border-[#6750A4]/50 dark:hover:border-[#D0BCFF]/50 hover:shadow-md`;
+                                let icon = null;
+                                if (feedback && feedback.selected === opt) {
+                                    // إزالة ال scale لمنع الرجفة
+                                    btnStyle = feedback.isCorrect ? 'bg-green-500 text-white border-green-600 shadow-lg' : 'bg-red-500 text-white border-red-600 shadow-lg';
+                                    icon = feedback.isCorrect ? <CheckCircle className="w-6 h-6"/> : <XIcon className="w-6 h-6"/>;
+                                }
+                                return (
+                                    <button key={i} onClick={() => handleOptionClick(opt)} disabled={feedback !== null} className={`relative min-h-[80px] p-5 rounded-2xl text-lg font-medium transition-colors duration-150 flex items-center justify-between text-right ${btnStyle}`}>
+                                        <span>{opt}</span>{icon}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        <div className={`fixed bottom-0 left-0 right-0 ${theme.headerBg} border-t ${theme.cardBorder} shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 flex items-center justify-between z-20`}>
+                            <div className="max-w-5xl 2xl:max-w-6xl mx-auto w-full flex items-center justify-between px-2">
+                                <button onClick={skipToNextSentence} disabled={quizState.sentenceIdx === sentencesData.length - 1} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 ${quizState.sentenceIdx === sentencesData.length - 1 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`}>
+                                    <ChevronRight className="w-5 h-5" /><span>تخطي للتالي</span>
+                                </button>
+                                <div className="text-base font-bold opacity-80 tracking-wide">سؤال <span className="text-lg text-[#6750A4] dark:text-[#D0BCFF] mx-1">{quizState.sentenceIdx + 1}</span> من {sentencesData.length}</div>
+                                <button onClick={skipToPrevSentence} disabled={quizState.sentenceIdx === 0} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 ${quizState.sentenceIdx === 0 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`} dir="ltr">
+                                    <ChevronLeft className="w-5 h-5" /><span className="font-notokufi">السابق</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
             };
 
             const currentSentence = sentencesData[currentCardIndex];
 
             return (
-                <div className={`min-h-screen flex flex-col transition-colors duration-300 ${theme.bg} ${theme.text} pb-24 font-notokufi`}>
+                <div className={`min-h-screen flex flex-col transition-colors duration-300 ${theme.bg} ${theme.text} pb-24 font-notokufi relative`}>
                     
-                    {/* نافذة الإعدادات */}
-                    {isSettingsOpen && (
-                        <div className={`fixed inset-0 z-[70] flex items-center justify-center p-4 transition-opacity ${theme.modalOverlay}`} onClick={() => setIsSettingsOpen(false)}>
-                            <div className={`${theme.modalBg} border ${theme.cardBorder} p-6 rounded-[28px] max-w-md w-full shadow-2xl transform transition-transform`} onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-bold flex items-center gap-2"><SettingsIcon className="w-5 h-5"/> الإعدادات</h3>
-                                    <button onClick={() => setIsSettingsOpen(false)} className={`p-2 rounded-full ${theme.iconHover}`}>
-                                        <XIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                
-                                <div className="space-y-5 mb-8">
-                                    <div>
-                                        <label className="block text-sm font-bold mb-2 opacity-90">صوت اللغة العربية</label>
-                                        <div className="relative">
-                                            <select 
-                                                value={selectedArVoiceURI} 
-                                                onChange={handleArVoiceChange}
-                                                className={`appearance-none w-full p-3.5 rounded-xl border ${theme.cardBorder} ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-[#6750A4] font-medium shadow-sm transition-shadow`}
-                                            >
-                                                {availableVoices.filter(v => v.lang.startsWith('ar')).map(v => (
-                                                    <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
-                                                ))}
-                                                {availableVoices.filter(v => v.lang.startsWith('ar')).length === 0 && (
-                                                    <option value="">لا توجد أصوات عربية مثبتة</option>
-                                                )}
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 opacity-50">
-                                                <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-bold mb-2 opacity-90">صوت اللاتينية</label>
-                                        <div className="relative">
-                                            <select 
-                                                value={selectedLaVoiceURI} 
-                                                onChange={handleLaVoiceChange}
-                                                className={`appearance-none w-full p-3.5 rounded-xl border ${theme.cardBorder} ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-[#6750A4] font-medium shadow-sm transition-shadow`}
-                                            >
-                                                {availableVoices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')).map(v => (
-                                                    <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
-                                                ))}
-                                                {availableVoices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')).length === 0 && (
-                                                    <option value="">لا توجد أصوات مناسبة مثبتة</option>
-                                                )}
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 opacity-50">
-                                                <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-sm font-bold opacity-90">سرعة القراءة</label>
-                                            <span className="text-sm font-bold opacity-70 bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-md text-[#6750A4] dark:text-[#D0BCFF]">{readingSpeed}x</span>
-                                        </div>
-                                        <input 
-                                            type="range" 
-                                            min="0.5" 
-                                            max="2" 
-                                            step="0.1" 
-                                            value={readingSpeed} 
-                                            onChange={handleSpeedChange} 
-                                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme.sliderBg} ${theme.sliderAccent}`}
-                                        />
-                                        <div className="flex justify-between text-xs opacity-50 mt-1 font-bold">
-                                            <span>بطيء</span>
-                                            <span>سريع</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button onClick={() => setIsSettingsOpen(false)} className={`w-full py-3.5 rounded-xl font-bold transition-transform active:scale-95 shadow-md ${theme.modalBtn}`}>
-                                    حفظ الإعدادات
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* النافذة المنبثقة لشرح الإعراب */}
-                    {selectedChip && (
-                        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-opacity ${theme.modalOverlay}`} onClick={() => setSelectedChip(null)}>
-                            <div className={`${theme.modalBg} border ${theme.cardBorder} p-6 rounded-[24px] max-w-sm w-full shadow-2xl transform transition-transform`} onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl font-bold">{selectedChip.label}</h3>
-                                    <button onClick={() => setSelectedChip(null)} className={`p-1 rounded-full ${theme.iconHover}`}>
-                                        <XIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                <p className="text-base leading-relaxed opacity-90 mb-6">{selectedChip.expl}</p>
-                                <button onClick={() => setSelectedChip(null)} className={`w-full py-2.5 rounded-xl font-bold transition-transform active:scale-95 ${theme.modalBtn}`}>
-                                    حسناً، أقنعتني
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <header className={`${theme.headerBg} sticky top-0 z-10 px-4 h-16 flex items-center justify-between shadow-sm transition-colors duration-300`}>
-                        <div className="flex items-center">
-                            <div className="p-2 rounded-full">
-                                <BookOpen className="w-6 h-6" />
-                            </div>
-                            <h1 className="text-xl font-bold ml-4 mr-2">المترجم اللاتيني</h1>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <button onClick={() => setIsSettingsOpen(true)} className={`p-2 rounded-full transition-colors ${theme.iconHover}`} title="الإعدادات">
-                                <SettingsIcon className="w-6 h-6" />
-                            </button>
-                            <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-full transition-colors ${theme.iconHover}`} title="تبديل الوضع">
-                                {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-                            </button>
-                        </div>
-                    </header>
-
-                    {/* تبويبات التبديل (شرح / مراجعة) */}
-                    <div className="flex justify-center mt-6 relative z-10">
-                        <div className={`p-1.5 rounded-2xl flex gap-1 ${theme.cardBg} border ${theme.cardBorder} shadow-sm`}>
-                            <button 
-                                onClick={() => { setActiveTab('شرح'); window.speechSynthesis.cancel(); setIsPlayingSequence(false); isPlayingRef.current = false; }} 
-                                className={`px-8 py-2.5 rounded-xl font-bold transition-all duration-300 ${activeTab === 'شرح' ? theme.activeIconBg + ' shadow-md' : 'opacity-70 hover:opacity-100'}`}
-                            >
-                                شرح
-                            </button>
-                            <button 
-                                onClick={() => { setActiveTab('مراجعة'); window.speechSynthesis.cancel(); setIsPlayingSequence(false); isPlayingRef.current = false; }} 
-                                className={`px-8 py-2.5 rounded-xl font-bold transition-all duration-300 ${activeTab === 'مراجعة' ? theme.activeIconBg + ' shadow-md' : 'opacity-70 hover:opacity-100'}`}
-                            >
-                                مراجعة
-                            </button>
-                        </div>
-                    </div>
-
-                    <main className="p-4 max-w-5xl 2xl:max-w-6xl mx-auto w-full flex-grow flex flex-col justify-center">
-                        
-                        {/* عرض طور الشرح */}
-                        {activeTab === 'شرح' && (
-                            <div key={currentSentence.number} className="animate-fade-in-slide space-y-6">
-                                {/* بطاقة الجملة الرئيسية */}
-                                <div className={`${theme.heroBg} rounded-[28px] p-6 shadow-md transition-colors duration-300 relative overflow-hidden`}>
-                                    {isPlayingSequence && <div className="absolute inset-0 bg-white/5 animate-pulse-slow pointer-events-none"></div>}
-
-                                    <div className={`flex flex-col xl:flex-row xl:items-center justify-between mb-6 gap-4 ${theme.heroText}`}>
-                                        <div className="flex items-center gap-2">
-                                            <Info className="w-5 h-5" />
-                                            <span className="font-bold text-sm">الجملة الأساسية (رقم {currentSentence.number})</span>
-                                        </div>
-                                        
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <button 
-                                                onClick={toggleSingleCardMode} 
-                                                className={`flex items-center justify-center p-2 rounded-xl transition-all duration-200 ${isSingleCardMode ? theme.activeIconBg : theme.inactiveIconBg}`}
-                                                title={isSingleCardMode ? "إيقاف القراءة عند نهاية البطاقة (مفعل)" : "الانتقال التلقائي للبطاقة التالية (مفعل)"}
-                                            >
-                                                <AutoNextIcon className="w-5 h-5" active={isSingleCardMode} />
-                                            </button>
-
-                                            <button 
-                                                onClick={toggleLoopMode} 
-                                                className={`flex items-center justify-center p-2 rounded-xl transition-all duration-200 ${isLoopMode ? theme.activeIconBg : theme.inactiveIconBg}`}
-                                                title={isLoopMode ? "تكرار مستمر (مفعل)" : "تكرار مستمر (معطل)"}
-                                            >
-                                                <LoopIcon className="w-5 h-5" />
-                                            </button>
-
-                                            <button 
-                                                onClick={toggleSentencesOnlyMode} 
-                                                className={`flex items-center justify-center p-2 rounded-xl transition-all duration-200 ${isSentencesOnlyMode ? theme.activeIconBg : theme.inactiveIconBg}`}
-                                                title={isSentencesOnlyMode ? "قراءة الجمل والترجمة فقط (مفعل)" : "قراءة الجمل مع الإعراب والتحليل (مفعل)"}
-                                            >
-                                                <ModeIcon className="w-5 h-5" active={isSentencesOnlyMode} />
-                                            </button>
-
-                                            <button 
-                                                onClick={togglePlayAll} 
-                                                className={`flex items-center gap-2 px-5 py-2 rounded-xl bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all font-bold text-sm ml-2`}
-                                            >
-                                                {isPlayingSequence ? (
-                                                    <><Square className="w-4 h-4" /> إيقاف القراءة</>
-                                                ) : (
-                                                    <><Play className="w-4 h-4" /> ابدأ القراءة</>
-                                                )}
-                                            </button>
-                                        </div>
+                    <div className="print-hidden flex flex-col flex-grow">
+                        {/* نافذة الإعدادات */}
+                        {isSettingsOpen && (
+                            <div className={`fixed inset-0 z-[70] flex items-center justify-center p-4 transition-opacity ${theme.modalOverlay}`} onClick={() => setIsSettingsOpen(false)}>
+                                <div className={`${theme.modalBg} border ${theme.cardBorder} p-6 rounded-[28px] max-w-md w-full shadow-2xl transform transition-transform`} onClick={e => e.stopPropagation()}>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold flex items-center gap-2"><SettingsIcon className="w-5 h-5"/> الإعدادات</h3>
+                                        <button onClick={() => setIsSettingsOpen(false)} className={`p-2 rounded-full ${theme.iconHover}`}><XIcon className="w-5 h-5" /></button>
                                     </div>
                                     
-                                    <div className="flex flex-col sm:flex-row items-stretch justify-between w-full gap-4 relative z-10">
-                                        <div className="flex-1 flex flex-row items-center justify-start gap-3 w-full sm:w-auto">
-                                            <button onClick={() => playAudio(currentSentence.arabic, 'ar-SA')} className={`p-2 rounded-full transition-colors ${theme.iconHover} ${theme.heroText}`}>
-                                                <Volume2 className="w-5 h-5" />
-                                            </button>
-                                            <p className={`text-xl sm:text-2xl font-bold text-right ${theme.heroText}`}>
-                                                {currentSentence.arabic}
-                                            </p>
+                                    <div className="space-y-6 mb-8">
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2 opacity-90">صوت اللغة العربية</label>
+                                            <div className="relative">
+                                                <select 
+                                                    value={selectedArVoiceURI} 
+                                                    onChange={e => {setSelectedArVoiceURI(e.target.value); window.speechSynthesis.cancel();}}
+                                                    className={`appearance-none w-full p-4 pl-12 rounded-2xl border border-gray-600 focus:border-transparent ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-[#D0BCFF] font-medium shadow-sm transition-all cursor-pointer hover:bg-white/5`}
+                                                >
+                                                    {availableVoices.filter(v => v.lang.startsWith('ar')).map(v => (
+                                                        <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+                                                    ))}
+                                                    {availableVoices.filter(v => v.lang.startsWith('ar')).length === 0 && <option value="">لا توجد أصوات عربية مثبتة</option>}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center opacity-70"><ChevronDown className="w-5 h-5" /></div>
+                                            </div>
                                         </div>
 
-                                        <div className={`w-[1px] min-h-full ${theme.heroDivider} hidden sm:block`} />
-                                        <div className={`w-full h-[1px] ${theme.heroDivider} block sm:hidden my-2`} />
-
-                                        <div className="flex-1 flex flex-row items-center justify-start gap-3 w-full sm:w-auto" dir="ltr">
-                                            <button onClick={() => playAudio(currentSentence.latin, 'it-IT')} className={`p-2 rounded-full transition-colors ${theme.iconHover} ${theme.heroText}`}>
-                                                <Volume2 className="w-5 h-5" />
-                                            </button>
-                                            <p className={`text-xl sm:text-2xl font-poppins tracking-wide text-left ${theme.heroText} w-full`}>
-                                                {currentSentence.latin}
-                                            </p>
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2 opacity-90">صوت اللاتينية</label>
+                                            <div className="relative">
+                                                <select 
+                                                    value={selectedLaVoiceURI} 
+                                                    onChange={e => {setSelectedLaVoiceURI(e.target.value); window.speechSynthesis.cancel();}}
+                                                    className={`appearance-none w-full p-4 pl-12 rounded-2xl border border-gray-600 focus:border-transparent ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-[#D0BCFF] font-medium shadow-sm transition-all cursor-pointer hover:bg-white/5`}
+                                                >
+                                                    {availableVoices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')).map(v => (
+                                                        <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+                                                    ))}
+                                                    {availableVoices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')).length === 0 && <option value="">لا توجد أصوات مناسبة مثبتة</option>}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center opacity-70"><ChevronDown className="w-5 h-5" /></div>
+                                            </div>
                                         </div>
+
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <label className="block text-sm font-bold opacity-90">سرعة القراءة ({readingSpeed}x)</label>
+                                            </div>
+                                            <input 
+                                                type="range" min="0.5" max="2" step="0.1" 
+                                                value={readingSpeed} 
+                                                onChange={e => {setReadingSpeed(parseFloat(e.target.value)); window.speechSynthesis.cancel();}} 
+                                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme.sliderBg} ${theme.sliderAccent}`}
+                                            />
+                                            <div className="flex justify-between text-xs opacity-50 mt-2 font-bold"><span>بطيء</span><span>سريع</span></div>
+                                        </div>
+                                    </div>
+
+                                    <button onClick={() => setIsSettingsOpen(false)} className={`w-full py-4 rounded-xl font-bold transition-transform active:scale-95 shadow-md ${theme.modalBtn}`}>حفظ الإعدادات</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* النافذة المنبثقة لشرح الإعراب */}
+                        {selectedChip && (
+                            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-opacity ${theme.modalOverlay}`} onClick={() => setSelectedChip(null)}>
+                                <div className={`${theme.modalBg} border ${theme.cardBorder} p-6 rounded-[24px] max-w-sm w-full shadow-2xl transform transition-transform`} onClick={e => e.stopPropagation()}>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-xl font-bold">{selectedChip.label}</h3>
+                                        <button onClick={() => setSelectedChip(null)} className={`p-1 rounded-full ${theme.iconHover}`}><XIcon className="w-5 h-5" /></button>
+                                    </div>
+                                    <p className="text-base leading-relaxed opacity-90 mb-6">{selectedChip.expl}</p>
+                                    <button onClick={() => setSelectedChip(null)} className={`w-full py-2.5 rounded-xl font-bold transition-transform active:scale-95 ${theme.modalBtn}`}>حسناً، أقنعتني</button>
+                                </div>
+                            </div>
+                        )}
+
+                        <header className={`${theme.headerBg} sticky top-0 z-10 px-4 h-16 flex items-center justify-between shadow-sm transition-colors duration-300`}>
+                            <div className="flex items-center"><BookOpen className="w-6 h-6" /><h1 className="text-xl font-bold ml-4 mr-2">المترجم اللاتيني</h1></div>
+                            <div className="flex items-center gap-1">
+                                {activeTab === 'شرح' && (
+                                    <button onClick={handlePrint} className={`p-2 rounded-full transition-colors ${theme.iconHover}`} title="حفظ الكروت كملف PDF">
+                                        <PrinterIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+                                <button onClick={() => setIsSettingsOpen(true)} className={`p-2 rounded-full transition-colors ${theme.iconHover}`} title="الإعدادات"><SettingsIcon className="w-6 h-6" /></button>
+                                <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-full transition-colors ${theme.iconHover}`} title="تبديل الوضع">{isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}</button>
+                            </div>
+                        </header>
+
+                        {/* تبويبات التبديل */}
+                        <div className="flex justify-center items-center mt-6 relative z-10 gap-4">
+                            <div className={`p-1.5 rounded-2xl flex gap-1 ${theme.cardBg} border ${theme.cardBorder} shadow-sm`}>
+                                <button onClick={() => { setActiveTab('شرح'); window.speechSynthesis.cancel(); setIsPlayingSequence(false); isPlayingRef.current = false; }} className={`px-8 py-2.5 rounded-xl font-bold transition-all duration-300 ${activeTab === 'شرح' ? theme.activeIconBg + ' shadow-md' : 'opacity-70 hover:opacity-100'}`}>شرح</button>
+                                <button onClick={() => { setActiveTab('مراجعة'); window.speechSynthesis.cancel(); setIsPlayingSequence(false); isPlayingRef.current = false; }} className={`px-8 py-2.5 rounded-xl font-bold transition-all duration-300 ${activeTab === 'مراجعة' ? theme.activeIconBg + ' shadow-md' : 'opacity-70 hover:opacity-100'}`}>مراجعة</button>
+                            </div>
+                        </div>
+
+                        <main className="p-4 max-w-5xl 2xl:max-w-6xl mx-auto w-full flex-grow flex flex-col justify-center">
+                            {activeTab === 'شرح' && (
+                                <div key={currentSentence.number} className="animate-fade-in-slide space-y-6">
+                                    <div className={`${theme.heroBg} rounded-[28px] p-6 shadow-md transition-colors duration-300 relative overflow-hidden`}>
+                                        {isPlayingSequence && <div className="absolute inset-0 bg-white/5 animate-pulse-slow pointer-events-none"></div>}
+
+                                        <div className={`flex flex-col xl:flex-row xl:items-center justify-between mb-6 gap-4 ${theme.heroText}`}>
+                                            <div className="flex items-center gap-2"><Info className="w-5 h-5" /><span className="font-bold text-sm">الجملة الأساسية (رقم {currentSentence.number})</span></div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button onClick={toggleSingleCardMode} className={`flex items-center justify-center p-2 rounded-xl transition-all duration-200 ${isSingleCardMode ? theme.activeIconBg : theme.inactiveIconBg}`} title={isSingleCardMode ? "إيقاف القراءة عند نهاية البطاقة" : "الانتقال التلقائي للبطاقة التالية"}><AutoNextIcon className="w-5 h-5" active={isSingleCardMode} /></button>
+                                                <button onClick={toggleLoopMode} className={`flex items-center justify-center p-2 rounded-xl transition-all duration-200 ${isLoopMode ? theme.activeIconBg : theme.inactiveIconBg}`} title={isLoopMode ? "تكرار مستمر" : "تكرار مستمر معطل"}><LoopIcon className="w-5 h-5" /></button>
+                                                <button onClick={toggleSentencesOnlyMode} className={`flex items-center justify-center p-2 rounded-xl transition-all duration-200 ${isSentencesOnlyMode ? theme.activeIconBg : theme.inactiveIconBg}`} title={isSentencesOnlyMode ? "قراءة الجمل فقط" : "قراءة الجمل مع الإعراب"}><ModeIcon className="w-5 h-5" active={isSentencesOnlyMode} /></button>
+                                                <button onClick={togglePlayAll} className={`flex items-center gap-2 px-5 py-2 rounded-xl bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all font-bold text-sm ml-2`}>{isPlayingSequence ? <><Square className="w-4 h-4" /> إيقاف القراءة</> : <><Play className="w-4 h-4" /> ابدأ القراءة</>}</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col sm:flex-row items-stretch justify-between w-full gap-4 relative z-10">
+                                            <div className="flex-1 flex flex-row items-center justify-start gap-3 w-full sm:w-auto">
+                                                <button onClick={() => playAudio(currentSentence.arabic, 'ar-SA')} className={`p-2 rounded-full transition-colors ${theme.iconHover} ${theme.heroText}`}><Volume2 className="w-5 h-5" /></button>
+                                                <p className={`text-xl sm:text-2xl font-bold text-right ${theme.heroText}`}>{currentSentence.arabic}</p>
+                                            </div>
+                                            <div className={`w-[1px] min-h-full ${theme.heroDivider} hidden sm:block`} />
+                                            <div className={`w-full h-[1px] ${theme.heroDivider} block sm:hidden my-2`} />
+                                            <div className="flex-1 flex flex-row items-center justify-start gap-3 w-full sm:w-auto" dir="ltr">
+                                                <button onClick={() => playAudio(currentSentence.latin, 'it-IT')} className={`p-2 rounded-full transition-colors ${theme.iconHover} ${theme.heroText}`}><Volume2 className="w-5 h-5" /></button>
+                                                <p className={`text-xl sm:text-2xl font-poppins tracking-wide text-left ${theme.heroText} w-full`}>{currentSentence.latin}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h2 className="text-lg font-bold px-2 pt-2 opacity-80 text-right flex flex-col md:flex-row md:items-center justify-between">
+                                        <span>الإعراب والتحليل (Morphology)</span>
+                                        <span className="text-sm font-normal opacity-60">توضيحات منطقية (اضغط على الإعراب)</span>
+                                    </h2>
+
+                                    <div className="space-y-4">
+                                        {currentSentence.words.map((word) => <WordCard key={word.id} word={word} theme={theme} playAudio={playAudio} onChipClick={setSelectedChip} />)}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'مراجعة' && <QuizMode />}
+
+                        </main>
+
+                        {/* شريط الملاحة السفلي للشرح */}
+                        {activeTab === 'شرح' && (
+                            <div className={`fixed bottom-0 left-0 right-0 ${theme.headerBg} border-t ${theme.cardBorder} shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
+                                <div className="max-w-5xl 2xl:max-w-6xl mx-auto w-full flex items-center justify-between px-2">
+                                    <button onClick={handleNextCard} disabled={currentCardIndex === sentencesData.length - 1} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 ${currentCardIndex === sentencesData.length - 1 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`}><ChevronRight className="w-5 h-5" /><span>التالي</span></button>
+                                    <div className="text-base font-bold opacity-80 tracking-wide">بطاقة <span className="text-lg text-[#6750A4] dark:text-[#D0BCFF] mx-1">{currentCardIndex + 1}</span> من {sentencesData.length}</div>
+                                    <button onClick={handlePrevCard} disabled={currentCardIndex === 0} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 ${currentCardIndex === 0 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`} dir="ltr"><ChevronLeft className="w-5 h-5" /><span className="font-notokufi">السابق</span></button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* --- عرض خاص بالطباعة فقط (الـ PDF) --- */}
+                    <div className="hidden print:block w-full text-right" dir="rtl">
+                        {sentencesData.map((sentence, idx) => (
+                            <div key={idx} className={`print-page ${theme.bg} ${theme.text}`}>
+                                <div className={`${theme.heroBg} rounded-[28px] p-8 shadow-md mb-8`}>
+                                    <div className={`flex items-center gap-2 mb-8 ${theme.heroText}`}>
+                                        <Info className="w-6 h-6" />
+                                        <span className="font-bold text-lg">الجملة الأساسية (رقم {sentence.number})</span>
+                                    </div>
+                                    <div className="flex justify-between items-center w-full gap-8">
+                                        <p className={`text-4xl font-bold text-right ${theme.heroText}`}>{sentence.arabic}</p>
+                                        <p className={`text-4xl font-poppins tracking-wide text-left ${theme.heroText}`} dir="ltr">{sentence.latin}</p>
                                     </div>
                                 </div>
 
-                                <h2 className="text-lg font-bold px-2 pt-2 opacity-80 text-right flex flex-col md:flex-row md:items-center justify-between">
-                                    <span>الإعراب والتحليل (Morphology)</span>
-                                    <span className="text-sm font-normal opacity-60">توضيحات منطقية (اضغط على الإعراب)</span>
+                                <h2 className="text-2xl font-bold px-4 pt-2 opacity-80 text-right mb-6 border-b border-gray-500/20 pb-4">
+                                    الإعراب والتحليل (Morphology)
                                 </h2>
 
-                                <div className="space-y-4">
-                                    {currentSentence.words.map((word) => (
-                                        <WordCard key={word.id} word={word} theme={theme} playAudio={playAudio} onChipClick={setSelectedChip} />
+                                <div className="space-y-6">
+                                    {sentence.words.map((word) => (
+                                        <div key={word.id} className={`${theme.cardBg} border ${theme.cardBorder} rounded-[24px] p-6`}>
+                                            <div className="flex justify-between items-center w-full gap-6">
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <span className={`px-5 py-2 ${theme.chipPrimaryBg} ${theme.chipPrimaryText} rounded-xl text-lg font-bold`}>{word.type.label}</span>
+                                                    {word.details.length > 0 && <span className="opacity-50 mx-2 text-xl">|</span>}
+                                                    {word.details.map((detail, index) => (
+                                                        <span key={index} className={`px-4 py-2 ${theme.chipSecBg} ${theme.chipSecText} rounded-xl text-lg font-medium`}>{detail.label}</span>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-6">
+                                                    <span className="text-2xl font-bold text-right">{word.arabic}</span>
+                                                    <span className="opacity-30 text-2xl">-</span>
+                                                    <span className="text-2xl font-bold font-poppins text-left" dir="ltr">{word.latin}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
-                        )}
-
-                        {/* عرض طور المراجعة والاختبار */}
-                        {activeTab === 'مراجعة' && (
-                            <QuizMode sentences={sentencesData} theme={theme} playAudio={playAudio} />
-                        )}
-
-                    </main>
-
-                    {/* شريط الملاحة السفلي (يظهر فقط في طور الشرح) */}
-                    {activeTab === 'شرح' && (
-                        <div className={`fixed bottom-0 left-0 right-0 ${theme.headerBg} border-t ${theme.cardBorder} shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
-                            <div className="max-w-5xl 2xl:max-w-6xl mx-auto w-full flex items-center justify-between px-2">
-                                
-                                <button 
-                                    onClick={handleNextCard} 
-                                    disabled={currentCardIndex === sentencesData.length - 1}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 
-                                        ${currentCardIndex === sentencesData.length - 1 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`}
-                                >
-                                    <ChevronRight className="w-5 h-5" />
-                                    <span>التالي</span>
-                                </button>
-
-                                <div className="text-base font-bold opacity-80 tracking-wide">
-                                    بطاقة <span className="text-lg text-[#6750A4] dark:text-[#D0BCFF] mx-1">{currentCardIndex + 1}</span> من {sentencesData.length}
-                                </div>
-
-                                <button 
-                                    onClick={handlePrevCard} 
-                                    disabled={currentCardIndex === 0}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 
-                                        ${currentCardIndex === 0 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`}
-                                    dir="ltr"
-                                >
-                                    <ChevronLeft className="w-5 h-5" />
-                                    <span className="font-notokufi">السابق</span>
-                                </button>
-
-                            </div>
-                        </div>
-                    )}
-
+                        ))}
+                    </div>
                 </div>
             );
         }
 
-        // --- مكون بطاقة الكلمة ---
         function WordCard({ word, theme, playAudio, onChipClick }) {
             return (
-                <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-[24px] p-5 shadow-sm transition-all duration-300 hover:shadow-md`}>
+                <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-[24px] p-5 shadow-sm transition-colors duration-150`}>
                     <div className="flex flex-col lg:flex-row justify-between items-center w-full gap-4">
-                        
                         <div className="flex flex-wrap items-center gap-2 order-2 lg:order-1 w-full lg:w-auto">
-                            <button onClick={() => onChipClick(word.type)} className={`px-4 py-1.5 ${theme.chipPrimaryBg} ${theme.chipPrimaryText} rounded-lg text-sm font-bold shadow-sm transition-transform active:scale-95 cursor-pointer hover:opacity-90`}>
-                                {word.type.label}
-                            </button>
-                            
+                            <button onClick={() => onChipClick(word.type)} className={`px-4 py-1.5 ${theme.chipPrimaryBg} ${theme.chipPrimaryText} rounded-lg text-sm font-bold shadow-sm transition-transform active:scale-95 cursor-pointer hover:opacity-90`}>{word.type.label}</button>
                             {word.details.length > 0 && <span className="opacity-50 mx-1">|</span>}
-
-                            {word.details.map((detail, index) => (
-                                <button key={index} onClick={() => onChipClick(detail)} className={`px-3 py-1.5 ${theme.chipSecBg} ${theme.chipSecText} rounded-lg text-sm font-medium transition-transform active:scale-95 cursor-pointer hover:opacity-90`}>
-                                    {detail.label}
-                                </button>
-                            ))}
+                            {word.details.map((detail, index) => <button key={index} onClick={() => onChipClick(detail)} className={`px-3 py-1.5 ${theme.chipSecBg} ${theme.chipSecText} rounded-lg text-sm font-medium transition-transform active:scale-95 cursor-pointer hover:opacity-90`}>{detail.label}</button>)}
                         </div>
-
                         <div className="flex flex-col sm:flex-row items-center gap-4 order-1 lg:order-2 w-full lg:w-auto lg:justify-end justify-start">
-                            <div className="flex items-center gap-2 justify-end w-full sm:w-auto" dir="rtl">
-                                <button onClick={() => playAudio(word.arabic, 'ar-SA')} className={`p-1.5 rounded-full ${theme.audioIcon} ${theme.iconHover} transition-colors`} title="استمع للعربية">
-                                    <Volume2 className="w-4 h-4" />
-                                </button>
-                                <span className="text-xl font-bold min-w-[70px] text-right">{word.arabic}</span>
-                            </div>
-
+                            <div className="flex items-center gap-2 justify-end w-full sm:w-auto" dir="rtl"><button onClick={() => playAudio(word.arabic, 'ar-SA')} className={`p-1.5 rounded-full ${theme.audioIcon} ${theme.iconHover} transition-colors`} title="استمع للعربية"><Volume2 className="w-4 h-4" /></button><span className="text-xl font-bold min-w-[70px] text-right">{word.arabic}</span></div>
                             <span className="opacity-30 hidden sm:block">-</span>
-                            
-                            <div className="flex items-center gap-2 justify-start w-full sm:w-auto" dir="ltr">
-                                <button onClick={() => playAudio(word.latin, 'it-IT')} className={`p-1.5 rounded-full ${theme.audioIcon} ${theme.iconHover} transition-colors`} title="استمع للاتينية">
-                                    <Volume2 className="w-4 h-4" />
-                                </button>
-                                <span className="text-xl font-bold font-poppins text-left">{word.latin}</span>
-                            </div>
+                            <div className="flex items-center gap-2 justify-start w-full sm:w-auto" dir="ltr"><button onClick={() => playAudio(word.latin, 'it-IT')} className={`p-1.5 rounded-full ${theme.audioIcon} ${theme.iconHover} transition-colors`} title="استمع للاتينية"><Volume2 className="w-4 h-4" /></button><span className="text-xl font-bold font-poppins text-left">{word.latin}</span></div>
                         </div>
                     </div>
                 </div>
