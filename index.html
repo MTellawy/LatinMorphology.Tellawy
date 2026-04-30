@@ -46,6 +46,22 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // --- مفتاح التشفير السري (SALT) - لا تقم بتغييره إلا إذا غيرته في مولد الأكواد أيضاً ---
+        const SECRET_SALT = "LATIN_MASTER_KEY_2026_PRO";
+
+        // دالة التشفير وتوليد الكود (نفسها في التطبيقين)
+        function generateLicenseCode(deviceId) {
+            const str = deviceId + SECRET_SALT;
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; 
+            }
+            const positiveHash = Math.abs(hash).toString(16).toUpperCase();
+            return positiveHash.substring(0, 4) + "-" + positiveHash.substring(4).padEnd(4, '0');
+        }
+
         // --- أيقونات SVG ---
         const BookOpen = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
         const Info = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
@@ -60,14 +76,15 @@
         const ChevronLeft = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="15 18 9 12 15 6"></polyline></svg>;
         const CheckCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
         const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
+        const LockIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
+        const PhoneIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
         
-        // أيقونات التحكم المعبرة الجديدة
         const AutoNextIcon = ({ className, active }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {active ? (
-                    <><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></> // إيقاف عند النهاية
+                    <><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></>
                 ) : (
-                    <><polygon points="5 4 15 12 5 20 5 4"></polygon><polygon points="13 4 23 12 13 20 13 4"></polygon></> // استمرار وانتقال آلي
+                    <><polygon points="5 4 15 12 5 20 5 4"></polygon><polygon points="13 4 23 12 13 20 13 4"></polygon></>
                 )}
             </svg>
         );
@@ -75,14 +92,14 @@
         const ModeIcon = ({ className, active }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {active ? (
-                    <><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></> // جمل فقط
+                    <><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></>
                 ) : (
-                    <><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></> // تفاصيل (إعراب)
+                    <><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></>
                 )}
             </svg>
         );
 
-        // --- البيانات بالإعراب المُقنع رياضياً ومنطقياً لـ 30 جملة ---
+        // --- البيانات الإعرابية (كما هي) ---
         const sentencesData = [
             {
                 number: "31", latin: "Puella bona rosam pulchram amat.", arabic: "الفتاة الطيبة تُحب الوردة الجميلة.",
@@ -386,35 +403,106 @@
             }
         ];
 
+        // --- شاشة الحماية بالترخيص ---
+        function LicenseScreen({ deviceId, onValidCode }) {
+            const [inputCode, setInputCode] = useState("");
+            const [error, setError] = useState(false);
+
+            const handleVerify = () => {
+                const expectedCode = generateLicenseCode(deviceId);
+                if (inputCode.trim().toUpperCase() === expectedCode) {
+                    onValidCode();
+                } else {
+                    setError(true);
+                }
+            };
+
+            const waLink = `https://wa.me/201144425002?text=أهلاً، أريد كود تفعيل لتطبيق المترجم اللاتيني.%0Aمعرف جهازي هو: ${deviceId}`;
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-[#141218] p-4 text-[#E6E0E9] font-notokufi" dir="rtl">
+                    <div className="bg-[#2B2930] max-w-md w-full p-8 rounded-[28px] shadow-2xl border border-[#49454F] text-center animate-fade-in-slide">
+                        <div className="mx-auto w-16 h-16 bg-[#D0BCFF] text-[#381E72] rounded-full flex items-center justify-center mb-6 shadow-lg">
+                            <LockIcon className="w-8 h-8" />
+                        </div>
+                        <h1 className="text-2xl font-bold mb-2">التطبيق مغلق</h1>
+                        <p className="opacity-80 mb-6 text-sm">هذا التطبيق مخصص فقط لمن يملك كود التفعيل. الكود يُستخدم لجهاز واحد فقط.</p>
+                        
+                        <div className="bg-black/20 p-4 rounded-xl mb-6 border border-white/5">
+                            <p className="text-xs opacity-60 mb-1">مُعرف جهازك (Device ID):</p>
+                            <p className="text-xl font-bold font-poppins tracking-wider text-[#D0BCFF]">{deviceId}</p>
+                        </div>
+
+                        <input 
+                            type="text" 
+                            placeholder="أدخل كود التفعيل هنا (XXXX-XXXX)"
+                            value={inputCode}
+                            onChange={(e) => { setInputCode(e.target.value); setError(false); }}
+                            className={`w-full bg-[#141218] border ${error ? 'border-red-500' : 'border-[#49454F]'} p-4 rounded-xl mb-4 text-center font-poppins text-lg tracking-widest focus:outline-none focus:border-[#D0BCFF] transition-colors`}
+                            dir="ltr"
+                        />
+                        {error && <p className="text-red-400 text-sm mb-4">الكود غير صحيح لهذا الجهاز!</p>}
+
+                        <button 
+                            onClick={handleVerify}
+                            className="w-full bg-[#D0BCFF] text-[#381E72] py-4 rounded-xl font-bold text-lg hover:bg-[#EADDFF] transition-all shadow-md active:scale-95 mb-6"
+                        >
+                            تفعيل التطبيق
+                        </button>
+
+                        <div className="border-t border-[#49454F] pt-6">
+                            <p className="text-sm opacity-80 mb-3">لا تملك كود تفعيل؟</p>
+                            <a 
+                                href={waLink} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 w-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 py-3 rounded-xl transition-all font-bold"
+                            >
+                                <PhoneIcon className="w-5 h-5" />
+                                طلب كود عبر واتساب
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // --- مكون الاختبار والمراجعة ---
         function QuizMode({ sentences, theme, playAudio }) {
             const [quizState, setQuizState] = useState({
                 sentenceIdx: 0,
-                wordIdx: -1, // -1 يعني سؤال ترجمة الجملة، 0+ يعني سؤال إعراب الكلمة
+                wordIdx: -1, 
                 isFinished: false
             });
             const [answersRecord, setAnswersRecord] = useState([]);
             const [currentOptions, setCurrentOptions] = useState([]);
-            const [feedback, setFeedback] = useState(null); // { selected: string, isCorrect: boolean }
+            const [feedback, setFeedback] = useState(null); 
 
-            // دالة للحصول على الصياغة الدقيقة للإعراب كإجابة صحيحة
             const getParsingString = (word) => {
                 if(!word.details || word.details.length === 0) return word.type.label;
                 return `${word.type.label} [ ${word.details.map(d=>d.label).join(' - ')} ]`;
             };
+
+            // قراءة الكلمة أو الجملة عند الانتقال لها
+            useEffect(() => {
+                if (quizState.isFinished) return;
+                const sentence = sentences[quizState.sentenceIdx];
+                if (quizState.wordIdx >= 0) {
+                    const word = sentence.words[quizState.wordIdx];
+                    playAudio(word.latin, 'it-IT');
+                }
+            }, [quizState.sentenceIdx, quizState.wordIdx, quizState.isFinished, sentences]);
 
             useEffect(() => {
                 if (quizState.isFinished) return;
                 
                 const sentence = sentences[quizState.sentenceIdx];
                 if (quizState.wordIdx === -1) {
-                    // توليد خيارات خاطئة لترجمة الجملة
                     const wrongPool = sentences.filter((_, i) => i !== quizState.sentenceIdx).map(s => s.arabic);
                     const shuffledWrong = wrongPool.sort(() => 0.5 - Math.random()).slice(0, 3);
                     const options = [...shuffledWrong, sentence.arabic].sort(() => 0.5 - Math.random());
                     setCurrentOptions(options);
                 } else {
-                    // توليد خيارات خاطئة لإعراب الكلمة
                     const word = sentence.words[quizState.wordIdx];
                     const correctParsing = getParsingString(word);
                     const wrongPool = sentences.flatMap(s => s.words)
@@ -428,7 +516,7 @@
             }, [quizState.sentenceIdx, quizState.wordIdx, quizState.isFinished, sentences]);
 
             const handleOptionClick = (opt) => {
-                if (feedback) return; // منع الضغط المزدوج أثناء عرض النتيجة
+                if (feedback) return; 
                 
                 const sentence = sentences[quizState.sentenceIdx];
                 let isCorrect = false;
@@ -456,8 +544,12 @@
                 
                 setFeedback({ selected: opt, isCorrect });
 
-                // تشغيل صوت التغذية الراجعة (اختياري)
-                if(isCorrect) playAudio("صحيح", "ar-SA");
+                // تشغيل صوت التغذية الراجعة
+                if(isCorrect) {
+                    playAudio("صحيح", "ar-SA");
+                } else {
+                    playAudio("غير صحيح", "ar-SA");
+                }
 
                 setTimeout(() => {
                     setFeedback(null);
@@ -538,7 +630,6 @@
             return (
                 <div className="animate-fade-in-slide flex flex-col items-center max-w-3xl mx-auto w-full">
                     
-                    {/* شريط التقدم */}
                     <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full mb-8 overflow-hidden">
                         <div 
                             className={`h-full ${theme.activeIconBg} transition-all duration-300`} 
@@ -589,7 +680,7 @@
                                     : 'bg-red-500 text-white border-red-600 shadow-lg transform scale-[0.98]';
                                 icon = feedback.isCorrect ? <CheckCircle className="w-6 h-6"/> : <XIcon className="w-6 h-6"/>;
                             } else if (feedback && !feedback.isCorrect && opt === answersRecord[answersRecord.length]?.correctAnswer) {
-                                // Highlight the correct answer if the user was wrong (logic placeholder, handled after timeout)
+                                // Highlight the correct answer
                             }
 
                             return (
@@ -611,8 +702,12 @@
 
         // --- التطبيق الرئيسي المجمّع ---
         function App() {
+            // نظام الترخيص
+            const [isLicensed, setIsLicensed] = useState(false);
+            const [deviceId, setDeviceId] = useState("");
+
             const [isDark, setIsDark] = useState(true);
-            const [activeTab, setActiveTab] = useState('شرح'); // 'شرح' | 'مراجعة'
+            const [activeTab, setActiveTab] = useState('شرح'); 
             const [selectedChip, setSelectedChip] = useState(null); 
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             
@@ -621,17 +716,14 @@
             const [isPlayingSequence, setIsPlayingSequence] = useState(false);
             const isPlayingRef = useRef(false);
 
-            // أزرار التحكم الجديدة
             const [isSingleCardMode, setIsSingleCardMode] = useState(true);
             const [isLoopMode, setIsLoopMode] = useState(false);
             const [isSentencesOnlyMode, setIsSentencesOnlyMode] = useState(false);
             
-            // Refs للاستخدام داخل الحلقات غير المتزامنة (Async loops)
             const isSingleCardModeRef = useRef(isSingleCardMode);
             const isLoopModeRef = useRef(isLoopMode);
             const isSentencesOnlyModeRef = useRef(isSentencesOnlyMode);
             
-            // إدارة الأصوات
             const [availableVoices, setAvailableVoices] = useState([]);
             const availableVoicesRef = useRef([]);
 
@@ -643,6 +735,21 @@
 
             const [readingSpeed, setReadingSpeed] = useState(1.3);
             const readingSpeedRef = useRef(1.3);
+
+            // إعداد الترخيص عند التحميل
+            useEffect(() => {
+                let savedId = localStorage.getItem('latinAppDeviceId');
+                if (!savedId) {
+                    savedId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    localStorage.setItem('latinAppDeviceId', savedId);
+                }
+                setDeviceId(savedId);
+
+                const licensed = localStorage.getItem('latinAppLicensed');
+                if (licensed === 'true') {
+                    setIsLicensed(true);
+                }
+            }, []);
 
             // مزامنة الـ Refs
             useEffect(() => { isSingleCardModeRef.current = isSingleCardMode; }, [isSingleCardMode]);
@@ -656,35 +763,37 @@
             useEffect(() => {
                 const loadVoices = () => {
                     const voices = window.speechSynthesis.getVoices();
+                    if(voices.length === 0) return;
                     setAvailableVoices(voices);
 
-                    if (voices.length > 0) {
-                        const isChrome = navigator.userAgent.includes("Chrome") && !navigator.userAgent.includes("Edg");
+                    const isEdge = navigator.userAgent.indexOf("Edg") !== -1;
+                    const isChrome = navigator.userAgent.indexOf("Chrome") !== -1 && !isEdge;
 
-                        setSelectedArVoiceURI(prev => {
-                            if (prev) return prev;
-                            const arVoices = voices.filter(v => v.lang.startsWith('ar'));
-                            let bestAr;
-                            if (isChrome) {
-                                bestAr = arVoices.find(v => v.name.includes('Google')) || arVoices.find(v => v.name.includes('Shaker')) || arVoices[0];
-                            } else {
-                                bestAr = arVoices.find(v => v.name.includes('Shaker')) || arVoices.find(v => v.name.includes('Google')) || arVoices[0];
-                            }
-                            return bestAr ? bestAr.voiceURI : '';
-                        });
+                    setSelectedArVoiceURI(prev => {
+                        if (prev) return prev;
+                        const arVoices = voices.filter(v => v.lang.startsWith('ar'));
+                        let bestAr;
+                        if (isChrome) {
+                            // في كروم، الأولوية لجوجل
+                            bestAr = arVoices.find(v => v.name.includes('Google')) || arVoices.find(v => v.name.includes('Shaker')) || arVoices[0];
+                        } else {
+                            // في ايدج وغيره، الأولوية لشاكر أو مايكروسوفت
+                            bestAr = arVoices.find(v => v.name.includes('Microsoft')) || arVoices.find(v => v.name.includes('Shaker')) || arVoices[0];
+                        }
+                        return bestAr ? bestAr.voiceURI : '';
+                    });
 
-                        setSelectedLaVoiceURI(prev => {
-                            if (prev) return prev;
-                            const laVoices = voices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la'));
-                            let bestLa;
-                            if (isChrome) {
-                                bestLa = laVoices.find(v => v.name.includes('Google')) || laVoices.find(v => v.name.includes('Isabella')) || laVoices[0];
-                            } else {
-                                bestLa = laVoices.find(v => v.name.includes('Isabella')) || laVoices.find(v => v.name.includes('Google')) || laVoices[0];
-                            }
-                            return bestLa ? bestLa.voiceURI : '';
-                        });
-                    }
+                    setSelectedLaVoiceURI(prev => {
+                        if (prev) return prev;
+                        const laVoices = voices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la'));
+                        let bestLa;
+                        if (isChrome) {
+                            bestLa = laVoices.find(v => v.name.includes('Google')) || laVoices.find(v => v.name.includes('Isabella')) || laVoices[0];
+                        } else {
+                            bestLa = laVoices.find(v => v.name.includes('Microsoft')) || laVoices.find(v => v.name.includes('Isabella')) || laVoices[0];
+                        }
+                        return bestLa ? bestLa.voiceURI : '';
+                    });
                 };
 
                 if ('speechSynthesis' in window) {
@@ -692,6 +801,15 @@
                     window.speechSynthesis.onvoiceschanged = loadVoices;
                 }
             }, []);
+
+            if (!isLicensed && deviceId) {
+                return <LicenseScreen deviceId={deviceId} onValidCode={() => {
+                    localStorage.setItem('latinAppLicensed', 'true');
+                    setIsLicensed(true);
+                }} />;
+            }
+
+            if (!isLicensed) return null; // تجنباً لوميض الشاشة أثناء التحميل
 
             const getVoiceForLang = (lang) => {
                 const voices = availableVoicesRef.current;
