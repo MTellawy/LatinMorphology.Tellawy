@@ -695,8 +695,10 @@
                     setAnswersRecord(prev => [...prev, { question: questionText, sentenceContext: currentSentence.latin, userAnswer: opt, correctAnswer, isCorrect }]);
                     setFeedback({ selected: opt, isCorrect });
                     
-                    // لا تنطق شيء للتسريع
-                    
+                    // التقييم الصوتي
+                    if(isCorrect) playAudio("صحيح", "ar-SA"); 
+                    else playAudio("غير صحيح", "ar-SA");
+
                     setTimeout(() => {
                         setFeedback(null);
                         if (quizState.wordIdx < currentSentence.words.length - 1) setQuizState(prev => ({ ...prev, wordIdx: prev.wordIdx + 1 }));
@@ -704,7 +706,7 @@
                             if (quizState.sentenceIdx < sentencesData.length - 1) setQuizState(prev => ({ ...prev, sentenceIdx: prev.sentenceIdx + 1, wordIdx: -1 }));
                             else setQuizState(prev => ({ ...prev, isFinished: true }));
                         }
-                    }, 350); // سرعة فائقة جداً (350 مللي ثانية) لإنهاء الرجفة والتأخير
+                    }, 500); // سرعة فائقة
                 };
 
                 const skipToNextSentence = () => {
@@ -805,6 +807,7 @@
                             })}
                         </div>
                         
+                        {/* شريط ملاحة سفلي خاص بالاختبار للتخطي السريع */}
                         <div className={`fixed bottom-0 left-0 right-0 ${theme.headerBg} border-t ${theme.cardBorder} shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 flex items-center justify-between z-20`}>
                             <div className="max-w-5xl 2xl:max-w-6xl mx-auto w-full flex items-center justify-between px-2">
                                 <button onClick={skipToNextSentence} disabled={quizState.sentenceIdx === sentencesData.length - 1} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-200 ${quizState.sentenceIdx === sentencesData.length - 1 ? 'opacity-30 cursor-not-allowed' : `hover:scale-105 active:scale-95 ${theme.modalBtn}`}`}>
@@ -850,36 +853,53 @@
                                                     {availableVoices.filter(v => v.lang.startsWith('ar')).length === 0 && <option value="">لا توجد أصوات عربية مثبتة</option>}
                                                 </select>
                                                 <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center opacity-70"><ChevronDown className="w-5 h-5" /></div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2 opacity-90">صوت اللاتينية</label>
+                                            <div className="relative">
+                                                <select 
+                                                    value={selectedLaVoiceURI} 
+                                                    onChange={e => {setSelectedLaVoiceURI(e.target.value); window.speechSynthesis.cancel();}}
+                                                    className={`appearance-none w-full p-4 pl-12 rounded-2xl border border-gray-600 focus:border-transparent ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-[#D0BCFF] font-medium shadow-sm transition-all cursor-pointer hover:bg-white/5`}
+                                                >
+                                                    {availableVoices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')).map(v => (
+                                                        <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+                                                    ))}
+                                                    {availableVoices.filter(v => v.lang.startsWith('it') || v.lang.startsWith('es') || v.lang.startsWith('la')).length === 0 && <option value="">لا توجد أصوات مناسبة مثبتة</option>}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center opacity-70"><ChevronDown className="w-5 h-5" /></div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <label className="block text-sm font-bold opacity-90">سرعة القراءة العربية ({arReadingSpeed}x)</label>
+                                            </div>
+                                            <input 
+                                                type="range" min="0.5" max="2" step="0.1" 
+                                                value={arReadingSpeed} 
+                                                onChange={e => {setArReadingSpeed(parseFloat(e.target.value)); window.speechSynthesis.cancel();}} 
+                                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme.sliderBg} ${theme.sliderAccent}`}
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <label className="block text-sm font-bold opacity-90">سرعة القراءة اللاتينية ({laReadingSpeed}x)</label>
+                                            </div>
+                                            <input 
+                                                type="range" min="0.5" max="2" step="0.1" 
+                                                value={laReadingSpeed} 
+                                                onChange={e => {setLaReadingSpeed(parseFloat(e.target.value)); window.speechSynthesis.cancel();}} 
+                                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme.sliderBg} ${theme.sliderAccent}`}
+                                            />
+                                            <div className="flex justify-between text-xs opacity-50 mt-2 font-bold"><span>بطيء</span><span>سريع</span></div>
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <div className="flex justify-between items-center mb-3">
-                                            <label className="block text-sm font-bold opacity-90">سرعة القراءة العربية ({arReadingSpeed}x)</label>
-                                        </div>
-                                        <input 
-                                            type="range" min="0.5" max="2" step="0.1" 
-                                            value={arReadingSpeed} 
-                                            onChange={e => {setArReadingSpeed(parseFloat(e.target.value)); window.speechSynthesis.cancel();}} 
-                                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme.sliderBg} ${theme.sliderAccent}`}
-                                        />
-                                    </div>
-                                    
-                                    <div>
-                                        <div className="flex justify-between items-center mb-3">
-                                            <label className="block text-sm font-bold opacity-90">سرعة القراءة اللاتينية ({laReadingSpeed}x)</label>
-                                        </div>
-                                        <input 
-                                            type="range" min="0.5" max="2" step="0.1" 
-                                            value={laReadingSpeed} 
-                                            onChange={e => {setLaReadingSpeed(parseFloat(e.target.value)); window.speechSynthesis.cancel();}} 
-                                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme.sliderBg} ${theme.sliderAccent}`}
-                                        />
-                                        <div className="flex justify-between text-xs opacity-50 mt-2 font-bold"><span>بطيء</span><span>سريع</span></div>
-                                    </div>
-                                </div>
-
-                                <button onClick={() => setIsSettingsOpen(false)} className={`w-full py-4 rounded-xl font-bold transition-transform active:scale-95 shadow-md ${theme.modalBtn}`}>حفظ الإعدادات</button>
+                                    <button onClick={() => setIsSettingsOpen(false)} className={`w-full py-4 rounded-xl font-bold transition-transform active:scale-95 shadow-md ${theme.modalBtn}`}>حفظ الإعدادات</button>
                                 </div>
                             </div>
                         )}
