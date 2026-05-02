@@ -528,27 +528,30 @@
                 setIsPlayingSequence(true);
 
                 const speakTextAsync = (text, lang) => {
-                return new Promise((resolve) => {
-                    if (!isPlayingRef.current) return resolve();
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    const voice = getVoiceForLang(lang);
-                    if (voice) utterance.voice = voice;
-                    utterance.lang = (lang === 'la' || lang === 'it-IT') ? 'it-IT' : 'ar-SA';
-                    utterance.rate = (lang === 'la' || lang === 'it-IT') ? laReadingSpeedRef.current : arReadingSpeedRef.current;
-                    utterance.onend = () => setTimeout(resolve, 200);
-                    utterance.onerror = () => setTimeout(resolve, 200); 
-                    window.speechSynthesis.speak(utterance);
-                });
-            };
+                    return new Promise((resolve) => {
+                        if (!isPlayingRef.current) return resolve();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        const voice = getVoiceForLang(lang);
+                        if (voice) utterance.voice = voice;
+                        utterance.lang = (lang === 'la' || lang === 'it-IT') ? 'it-IT' : 'ar-SA';
+                        utterance.rate = (lang === 'la' || lang === 'it-IT') ? laReadingSpeedRef.current : arReadingSpeedRef.current;
+                        
+                        // إزالة التأخير الزمني بالكامل (انتقال لحظي)
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve; 
+                        window.speechSynthesis.speak(utterance);
+                    });
+                };
 
-            try {
+                try {
                     let loopIndex = currentCardIndex;
                     
                     while (isPlayingRef.current) {
                         setCurrentCardIndex(loopIndex); 
                         const currentSent = sentencesData[loopIndex];
                         
-                        await new Promise(r => setTimeout(r, 150));
+                        // فاصل شبه معدوم (10 مللي ثانية) فقط للسماح للمتصفح بتحديث رقم البطاقة على الشاشة
+                        await new Promise(r => setTimeout(r, 10));
 
                         await speakTextAsync(currentSent.latin, 'it-IT');
                         if (!isPlayingRef.current) break;
