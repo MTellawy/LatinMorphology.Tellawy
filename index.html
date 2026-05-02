@@ -535,8 +535,6 @@
                         if (voice) utterance.voice = voice;
                         utterance.lang = (lang === 'la' || lang === 'it-IT') ? 'it-IT' : 'ar-SA';
                         utterance.rate = (lang === 'la' || lang === 'it-IT') ? laReadingSpeedRef.current : arReadingSpeedRef.current;
-                        
-                        // إزالة التأخير الزمني بالكامل (انتقال لحظي)
                         utterance.onend = resolve;
                         utterance.onerror = resolve; 
                         window.speechSynthesis.speak(utterance);
@@ -550,8 +548,7 @@
                         setCurrentCardIndex(loopIndex); 
                         const currentSent = sentencesData[loopIndex];
                         
-                        // فاصل شبه معدوم (10 مللي ثانية) فقط للسماح للمتصفح بتحديث رقم البطاقة على الشاشة
-                        await new Promise(r => setTimeout(r, 10));
+                        await new Promise(r => setTimeout(r, 150));
 
                         await speakTextAsync(currentSent.latin, 'it-IT');
                         if (!isPlayingRef.current) break;
@@ -565,12 +562,13 @@
                                 if (!isPlayingRef.current) break;
                                 await speakTextAsync(word.arabic, 'ar-SA');
                                 if (!isPlayingRef.current) break;
-                                await speakTextAsync(word.type.label, 'ar-SA');
                                 
-                                for (const detail of word.details) {
-                                    if (!isPlayingRef.current) break;
-                                    await speakTextAsync(detail.label, 'ar-SA');
+                                // تجميع عناصر الإعراب في جملة واحدة مقطعة بفواصل لتسريع النطق وجعله متصلاً
+                                let parsingDetails = word.type.label;
+                                if (word.details && word.details.length > 0) {
+                                    parsingDetails += "، " + word.details.map(d => d.label).join("، ");
                                 }
+                                await speakTextAsync(parsingDetails, 'ar-SA');
                             }
                         }
 
@@ -698,10 +696,6 @@
                     setAnswersRecord(prev => [...prev, { question: questionText, sentenceContext: currentSentence.latin, userAnswer: opt, correctAnswer, isCorrect }]);
                     setFeedback({ selected: opt, isCorrect });
                     
-                    // التقييم الصوتي
-                    if(isCorrect) playAudio("صحيح", "ar-SA"); 
-                    else playAudio("غير صحيح", "ar-SA");
-
                     setTimeout(() => {
                         setFeedback(null);
                         if (quizState.wordIdx < currentSentence.words.length - 1) setQuizState(prev => ({ ...prev, wordIdx: prev.wordIdx + 1 }));
